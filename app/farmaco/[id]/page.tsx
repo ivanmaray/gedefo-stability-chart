@@ -27,7 +27,7 @@ export default async function FarmacoPage({ params }: PageProps) {
     { data: matrizRiesgo },
   ] = await Promise.all([
     supabase.from('principio_activo').select('*').eq('id', id).single(),
-    supabase.from('presentacion_comercial').select('*').eq('principio_activo_id', id).order('nombre_comercial'),
+    supabase.from('presentacion_comercial').select('*, envase(*)').eq('principio_activo_id', id).order('nombre_comercial'),
     supabase.from('estabilidad').select('*').eq('principio_activo_id', id).order('temperatura_celsius'),
     supabase.from('condicion_preparacion').select('*').eq('principio_activo_id', id),
     supabase.from('administracion').select('*').eq('principio_activo_id', id),
@@ -75,7 +75,6 @@ export default async function FarmacoPage({ params }: PageProps) {
         <Section title="Manipulación segura">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             {matrizRiesgo.tipo_cabina && <InfoRow label="Cabina" value={matrizRiesgo.tipo_cabina} />}
-            {matrizRiesgo.nivel_contencion && <InfoRow label="Nivel contención" value={matrizRiesgo.nivel_contencion} />}
             {matrizRiesgo.epi_requerido && matrizRiesgo.epi_requerido.length > 0 && (
               <InfoRow label="EPI" value={matrizRiesgo.epi_requerido.join(', ')} />
             )}
@@ -89,7 +88,11 @@ export default async function FarmacoPage({ params }: PageProps) {
         {presentaciones && presentaciones.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {presentaciones.map((p) => (
-              <PresentationCard key={p.id} presentacion={p} />
+              <PresentationCard
+                key={p.id}
+                presentacion={p}
+                envases={(p as any).envase ?? []}
+              />
             ))}
           </div>
         ) : (

@@ -297,6 +297,50 @@ export type Database = {
           },
         ]
       }
+      envase: {
+        Row: {
+          codigo_nacional: string | null
+          comercializado: boolean
+          created_at: string
+          estado_comercializacion: string | null
+          id: string
+          presentacion_id: string
+          problema_suministro: boolean
+          updated_at: string
+          volumen_ml: number | null
+        }
+        Insert: {
+          codigo_nacional?: string | null
+          comercializado?: boolean
+          created_at?: string
+          estado_comercializacion?: string | null
+          id?: string
+          presentacion_id: string
+          problema_suministro?: boolean
+          updated_at?: string
+          volumen_ml?: number | null
+        }
+        Update: {
+          codigo_nacional?: string | null
+          comercializado?: boolean
+          created_at?: string
+          estado_comercializacion?: string | null
+          id?: string
+          presentacion_id?: string
+          problema_suministro?: boolean
+          updated_at?: string
+          volumen_ml?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envase_presentacion_id_fkey"
+            columns: ["presentacion_id"]
+            isOneToOne: false
+            referencedRelation: "presentacion_comercial"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estabilidad: {
         Row: {
           concentracion_mg_ml: number | null
@@ -475,7 +519,6 @@ export type Database = {
         Row: {
           cima_datos_raw: Json | null
           cima_last_sync: string | null
-          codigo_nacional: string | null
           con_conservantes: boolean | null
           concentracion_unidad: string | null
           concentracion_valor: number | null
@@ -483,27 +526,24 @@ export type Database = {
           created_at: string
           densidad: number | null
           estabilidad_fuera_nevera_horas: number | null
-          estado_comercializacion: string | null
           excipientes: Json | null
           ficha_tecnica_url: string | null
           forma_farmaceutica: string | null
           id: string
           laboratorio_titular: string | null
           nombre_comercial: string
+          nregistro_cima: string | null
           osmolaridad_mosm_l: number | null
           ph_maximo: number | null
           ph_minimo: number | null
           principio_activo_id: string
-          problema_suministro: boolean
           proteccion_luz_almacenamiento: boolean
           temperatura_conservacion: string | null
           updated_at: string
-          volumen_envase_ml: number | null
         }
         Insert: {
           cima_datos_raw?: Json | null
           cima_last_sync?: string | null
-          codigo_nacional?: string | null
           con_conservantes?: boolean | null
           concentracion_unidad?: string | null
           concentracion_valor?: number | null
@@ -511,27 +551,24 @@ export type Database = {
           created_at?: string
           densidad?: number | null
           estabilidad_fuera_nevera_horas?: number | null
-          estado_comercializacion?: string | null
           excipientes?: Json | null
           ficha_tecnica_url?: string | null
           forma_farmaceutica?: string | null
           id?: string
           laboratorio_titular?: string | null
           nombre_comercial: string
+          nregistro_cima?: string | null
           osmolaridad_mosm_l?: number | null
           ph_maximo?: number | null
           ph_minimo?: number | null
           principio_activo_id: string
-          problema_suministro?: boolean
           proteccion_luz_almacenamiento?: boolean
           temperatura_conservacion?: string | null
           updated_at?: string
-          volumen_envase_ml?: number | null
         }
         Update: {
           cima_datos_raw?: Json | null
           cima_last_sync?: string | null
-          codigo_nacional?: string | null
           con_conservantes?: boolean | null
           concentracion_unidad?: string | null
           concentracion_valor?: number | null
@@ -539,22 +576,20 @@ export type Database = {
           created_at?: string
           densidad?: number | null
           estabilidad_fuera_nevera_horas?: number | null
-          estado_comercializacion?: string | null
           excipientes?: Json | null
           ficha_tecnica_url?: string | null
           forma_farmaceutica?: string | null
           id?: string
           laboratorio_titular?: string | null
           nombre_comercial?: string
+          nregistro_cima?: string | null
           osmolaridad_mosm_l?: number | null
           ph_maximo?: number | null
           ph_minimo?: number | null
           principio_activo_id?: string
-          problema_suministro?: boolean
           proteccion_luz_almacenamiento?: boolean
           temperatura_conservacion?: string | null
           updated_at?: string
-          volumen_envase_ml?: number | null
         }
         Relationships: [
           {
