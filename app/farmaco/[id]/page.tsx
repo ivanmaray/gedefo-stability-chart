@@ -146,11 +146,13 @@ export default async function FarmacoPage({ params }: PageProps) {
                 </span>
                 {a.clasificacion_tisular && (
                   <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                    a.clasificacion_tisular === 'vesicante' ? 'bg-red-100 text-red-700' :
-                    a.clasificacion_tisular === 'irritante' ? 'bg-orange-100 text-orange-700' :
+                    a.clasificacion_tisular === 'vesicante'             ? 'bg-red-100 text-red-700' :
+                    a.clasificacion_tisular === 'irritante_alto_riesgo' ? 'bg-orange-100 text-orange-700' :
+                    a.clasificacion_tisular === 'irritante_bajo_riesgo' ? 'bg-yellow-100 text-yellow-700' :
+                    a.clasificacion_tisular === 'no_irritante'          ? 'bg-green-100 text-green-700' :
                     'bg-gray-100 text-gray-600'
                   }`}>
-                    {a.clasificacion_tisular}
+                    {a.clasificacion_tisular.replace(/_/g, ' ')}
                   </span>
                 )}
               </div>
