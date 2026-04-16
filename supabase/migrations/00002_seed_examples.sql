@@ -9,7 +9,7 @@
 -- ============================================================
 INSERT INTO referencia (id, tipo_fuente, titulo, url, fecha_consulta, notas) VALUES
   ('a1000000-0000-0000-0000-000000000001', 'ficha_tecnica', 'Ficha técnica Cisplatino Accord 1 mg/mL - AEMPS/CIMA', 'https://cima.aemps.es/cima/dochtml/ft/60341/FT_60341.html', '2026-04-16', 'CN 603411 - Accord Healthcare'),
-  ('a1000000-0000-0000-0000-000000000002', 'ficha_tecnica', 'Ficha técnica Ciclofosfamida Accord 200 mg - AEMPS/CIMA', 'https://cima.aemps.es/cima/dochtml/ft/74649/FT_74649.html', '2026-04-16', 'CN 746494 - Accord Healthcare'),
+  ('a1000000-0000-0000-0000-000000000002', 'ficha_tecnica', 'Ficha técnica Genoxal 200 mg polvo para solución inyectable y para perfusión - AEMPS/CIMA', 'https://cima.aemps.es/cima/dochtml/ft/33411/FT_33411.html', '2026-04-16', 'Nreg 33411 - Baxter S.L.'),
   ('a1000000-0000-0000-0000-000000000003', 'ficha_tecnica', 'Ficha técnica Doxorrubicina Accord 2 mg/mL - AEMPS/CIMA', 'https://cima.aemps.es/cima/dochtml/ft/63791/FT_63791.html', '2026-04-16', 'CN 637912 - Accord Healthcare'),
   ('a1000000-0000-0000-0000-000000000004', 'stabilis', 'Stabilis 4.0 — Cisplatin stability data', 'http://www.stabilis.org', '2026-04-16', 'Stabilis Online, consultado abril 2026'),
   ('a1000000-0000-0000-0000-000000000005', 'stabilis', 'Stabilis 4.0 — Cyclophosphamide stability data', 'http://www.stabilis.org', '2026-04-16', 'Stabilis Online, consultado abril 2026'),
