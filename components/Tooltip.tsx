@@ -1,42 +1,38 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 
 export default function Tooltip({
   children,
   content,
+  wide = false,
 }: {
   children: React.ReactNode
   content: React.ReactNode
+  wide?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  function enter() {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setOpen(true)
+  }
+
+  function leave() {
+    closeTimer.current = setTimeout(() => setOpen(false), 180)
+  }
 
   return (
-    <div ref={ref} className="relative inline-block">
-      <div
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        onClick={() => setOpen((v) => !v)}
-        className="cursor-default"
-      >
+    <div className="relative inline-block">
+      <div onMouseEnter={enter} onMouseLeave={leave}>
         {children}
       </div>
       {open && (
         <div
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-          className="absolute z-50 left-0 top-full mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs text-gray-700"
+          onMouseEnter={enter}
+          onMouseLeave={leave}
+          className={`absolute z-50 left-0 top-full mt-1 ${wide ? 'w-96' : 'w-72'} bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-xs text-gray-700`}
         >
           {content}
         </div>

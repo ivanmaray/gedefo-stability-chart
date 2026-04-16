@@ -9,9 +9,9 @@ const nioshBadge: Record<string, string> = {
 }
 
 const tisularBadge: Record<string, { bg: string; label: string }> = {
-  vesicante:             { bg: 'bg-red-100 text-red-700',    label: 'Vesicante' },
-  irritante_alto_riesgo: { bg: 'bg-orange-100 text-orange-700', label: 'Irritante A' },
-  irritante_bajo_riesgo: { bg: 'bg-yellow-100 text-yellow-700', label: 'Irritante B' },
+  vesicante:             { bg: 'bg-red-100 text-red-700',       label: 'Vesicante' },
+  irritante_alto_riesgo: { bg: 'bg-orange-100 text-orange-700', label: 'Irritante AR' },
+  irritante_bajo_riesgo: { bg: 'bg-yellow-100 text-yellow-700', label: 'Irritante BR' },
   no_irritante:          { bg: 'bg-green-100 text-green-700',   label: 'No irritante' },
 }
 
@@ -37,273 +37,357 @@ export default async function HomePage() {
     )
   }
 
+  // Aplanar a filas por presentación
+  const rows = (drugs ?? []).flatMap((drug) => {
+    const presentaciones: any[] = (drug as any).presentacion_comercial ?? []
+    const condiciones:    any[] = (drug as any).condicion_preparacion ?? []
+    const admins:         any[] = (drug as any).administracion ?? []
+    const diluentes:      any[] = (drug as any).compatibilidad_diluente ?? []
+    const materiales:     any[] = (drug as any).compatibilidad_material ?? []
+    const matriz:         any   = ((drug as any).matriz_riesgo ?? [])[0] ?? null
+
+    // Condiciones de dilución (presentacion_id nulo = aplica a todas)
+    const condDilucion = condiciones.filter((c: any) => c.tipo === 'dilucion')
+    const envaseDilucion = condDilucion[0]?.envase_compatible ?? []
+    const luzDilucion    = condDilucion[0]?.proteccion_luz ?? false
+
+    return presentaciones.map((pres: any, idx: number) => {
+      // Reconstitución específica de esta presentación (o genérica del PA)
+      const reconst = condiciones.filter(
+        (c: any) => c.tipo === 'reconstitucion' &&
+          (c.presentacion_comercial_id === pres.id || c.presentacion_comercial_id === null)
+      )
+      return {
+        drug,
+        pres,
+        idx,
+        total: presentaciones.length,
+        isFirst: idx === 0,
+        reconst,
+        condDilucion,
+        envaseDilucion,
+        luzDilucion,
+        diluentes,
+        materiales,
+        admins,
+        matriz,
+      }
+    })
+  })
+
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="text-2xl font-bold text-gray-900">Stability Chart</h1>
-        <p className="text-sm text-gray-500 mt-1">{drugs?.length ?? 0} principios activos</p>
+        <p className="text-sm text-gray-500 mt-0.5">{drugs?.length ?? 0} principios activos</p>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
-        <table className="w-full text-xs border-collapse">
+        <table className="text-xs border-collapse" style={{ minWidth: '1200px', width: '100%' }}>
           <thead>
             <tr className="bg-gray-50 text-gray-500 uppercase tracking-wide text-[10px] border-b border-gray-200">
-              <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-gray-50 z-10 min-w-[140px]">Fármaco</th>
-              <th className="text-left px-4 py-3 font-semibold min-w-[200px]">Presentaciones</th>
-              <th className="text-left px-4 py-3 font-semibold min-w-[120px]">Reconstitución</th>
-              <th className="text-left px-4 py-3 font-semibold min-w-[200px]">Diluyentes</th>
-              <th className="text-left px-4 py-3 font-semibold min-w-[140px]">Envase</th>
-              <th className="text-center px-4 py-3 font-semibold min-w-[60px]">Luz</th>
-              <th className="text-left px-4 py-3 font-semibold min-w-[160px]">Administración</th>
-              <th className="text-left px-4 py-3 font-semibold min-w-[120px]">Cabina / EPI</th>
+              {/* Grupo: identificación */}
+              <th className="text-left px-3 py-2.5 font-semibold sticky left-0 bg-gray-50 z-10 border-r border-gray-200 w-32">Fármaco</th>
+              <th className="text-left px-3 py-2.5 font-semibold w-44 border-r border-gray-100">Presentación</th>
+
+              {/* Grupo: vial reconstituido */}
+              <th className="text-left px-3 py-2.5 font-semibold w-32 bg-blue-50/50">Reconst.</th>
+              <th className="text-left px-3 py-2.5 font-semibold w-20 bg-blue-50/50">pH / Densidad</th>
+
+              {/* Grupo: dilución */}
+              <th className="text-left px-3 py-2.5 font-semibold w-48 bg-green-50/50 border-l border-gray-100">Diluyentes</th>
+              <th className="text-left px-3 py-2.5 font-semibold w-32 bg-green-50/50">Envase</th>
+              <th className="text-center px-3 py-2.5 font-semibold w-12 bg-green-50/50">Luz</th>
+
+              {/* Grupo: administración */}
+              <th className="text-left px-3 py-2.5 font-semibold w-44 border-l border-gray-100">Administración</th>
+              <th className="text-left px-3 py-2.5 font-semibold w-28">Cabina / EPI</th>
+            </tr>
+            {/* Subheader de grupos */}
+            <tr className="text-[9px] text-gray-400 border-b border-gray-200 bg-gray-50">
+              <td className="px-3 py-1 sticky left-0 bg-gray-50 border-r border-gray-200" />
+              <td className="px-3 py-1 border-r border-gray-100" />
+              <td className="px-3 py-1 bg-blue-50/50 text-blue-400 font-semibold" colSpan={2}>VIAL RECONSTITUIDO</td>
+              <td className="px-3 py-1 bg-green-50/50 text-green-500 font-semibold border-l border-gray-100" colSpan={3}>DILUCIÓN</td>
+              <td className="px-3 py-1 border-l border-gray-100" colSpan={2} />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {(drugs ?? []).map((drug) => {
-              const presentaciones = (drug as any).presentacion_comercial ?? []
-              const condiciones    = (drug as any).condicion_preparacion ?? []
-              const admins         = (drug as any).administracion ?? []
-              const diluentes      = (drug as any).compatibilidad_diluente ?? []
-              const materiales     = (drug as any).compatibilidad_material ?? []
-              const matriz         = (drug as any).matriz_riesgo?.[0] ?? null
-
-              const condReconst  = condiciones.filter((c: any) => c.tipo === 'reconstitucion')
-              const condDilucion = condiciones.filter((c: any) => c.tipo === 'dilucion')
-
-              // Envases compatibles de la dilución (o reconstitución si no hay dilución)
-              const envases = condDilucion[0]?.envase_compatible
-                ?? condReconst[0]?.envase_compatible
-                ?? []
-
-              // Protección de luz (dilución o reconstitución)
-              const proteccionLuz = condDilucion[0]?.proteccion_luz
-                ?? condReconst[0]?.proteccion_luz
-                ?? false
+            {rows.map(({ drug, pres, idx, total, isFirst, reconst, condDilucion, envaseDilucion, luzDilucion, diluentes, materiales, admins, matriz }) => {
+              const envases: any[] = pres.envase ?? []
+              const hasPsum = envases.some((e: any) => e.problema_suministro)
+              const incompatMat = materiales.filter((m: any) => m.resultado === 'incompatible')
 
               return (
-                <tr key={drug.id} className="hover:bg-blue-50/30 transition-colors align-top">
+                <tr
+                  key={pres.id}
+                  className={`align-top ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} hover:bg-blue-50/20 transition-colors`}
+                >
+                  {/* ── FÁRMACO (rowspan) ── */}
+                  {isFirst && (
+                    <td
+                      rowSpan={total}
+                      className="px-3 py-3 sticky left-0 bg-white z-10 border-r border-gray-200 align-middle"
+                    >
+                      <p className="font-bold text-gray-900 capitalize text-sm">{drug.dci}</p>
+                      {drug.clasificacion_niosh && (
+                        <span className={`mt-1 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${nioshBadge[drug.clasificacion_niosh]}`}>
+                          NIOSH {drug.clasificacion_niosh.replace('_', ' ')}
+                        </span>
+                      )}
+                      {drug.atc_code && (
+                        <p className="text-[10px] text-gray-400 font-mono mt-0.5">{drug.atc_code}</p>
+                      )}
+                    </td>
+                  )}
 
-                  {/* FÁRMACO */}
-                  <td className="px-4 py-3 sticky left-0 bg-white hover:bg-blue-50/30 z-10 border-r border-gray-100">
-                    <p className="font-semibold text-gray-900 capitalize">{drug.dci}</p>
-                    {drug.clasificacion_niosh && (
-                      <span className={`mt-0.5 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${nioshBadge[drug.clasificacion_niosh]}`}>
-                        NIOSH {drug.clasificacion_niosh.replace('_', ' ')}
-                      </span>
-                    )}
-                  </td>
-
-                  {/* PRESENTACIONES */}
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      {presentaciones.map((p: any) => {
-                        const envs = p.envase ?? []
-                        const hasPsum = envs.some((e: any) => e.problema_suministro)
-                        return (
-                          <Tooltip
-                            key={p.id}
-                            content={
-                              <div className="space-y-2">
-                                <p className="font-semibold text-gray-900">{p.nombre_comercial}</p>
-                                <p className="text-gray-500">{p.laboratorio_titular}</p>
-                                {p.forma_farmaceutica && <p>{p.forma_farmaceutica}</p>}
-                                {p.concentracion_valor && (
-                                  <p>{p.concentracion_valor} {p.concentracion_unidad}</p>
-                                )}
-                                {envs.length > 0 && (
-                                  <div>
-                                    <p className="text-gray-400 mb-1">Envases:</p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {envs.map((e: any) => (
-                                        <span key={e.id} className={`font-mono px-1.5 py-0.5 rounded text-[10px] border ${e.problema_suministro ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                                          CN {e.codigo_nacional}{e.volumen_ml ? ` · ${e.volumen_ml}mL` : ''}{e.problema_suministro ? ' ⚠' : ''}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                {p.ficha_tecnica_url && (
-                                  <a href={p.ficha_tecnica_url} target="_blank" rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline block mt-1">
-                                    Ficha técnica AEMPS ↗
-                                  </a>
-                                )}
+                  {/* ── PRESENTACIÓN ── */}
+                  <td className="px-3 py-3 border-r border-gray-100">
+                    <Tooltip
+                      content={
+                        <div className="space-y-2">
+                          <p className="font-semibold">{pres.nombre_comercial}</p>
+                          {pres.forma_farmaceutica && <p className="text-gray-500">{pres.forma_farmaceutica}</p>}
+                          {pres.concentracion_valor != null && (
+                            <p>{pres.concentracion_valor} {pres.concentracion_unidad}</p>
+                          )}
+                          {pres.temperatura_conservacion && (
+                            <p>Conservación: {pres.temperatura_conservacion}</p>
+                          )}
+                          {envases.length > 0 && (
+                            <div>
+                              <p className="text-gray-400 mb-1 font-medium">Envases:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {envases.map((e: any) => (
+                                  <span key={e.id} className={`font-mono px-1.5 py-0.5 rounded text-[10px] border ${e.problema_suministro ? 'bg-amber-50 border-amber-300 text-amber-800' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+                                    CN {e.codigo_nacional}{e.volumen_ml ? ` · ${e.volumen_ml} mL` : ''}{e.problema_suministro ? ' ⚠' : ''}
+                                  </span>
+                                ))}
                               </div>
-                            }
-                          >
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] cursor-pointer hover:shadow-sm transition-shadow ${hasPsum ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-white border-gray-200 text-gray-700'}`}>
-                              {p.laboratorio_titular?.split(' ')[0]}
-                              {hasPsum && <span className="text-amber-500">⚠</span>}
+                            </div>
+                          )}
+                          {pres.ficha_tecnica_url && (
+                            <a href={pres.ficha_tecnica_url} target="_blank" rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline block pt-1 border-t border-gray-100">
+                              Ficha técnica AEMPS ↗
+                            </a>
+                          )}
+                        </div>
+                      }
+                    >
+                      <div className="cursor-pointer">
+                        <span className={`font-medium ${hasPsum ? 'text-amber-700' : 'text-gray-800'}`}>
+                          {pres.laboratorio_titular?.split(' ').slice(0, 2).join(' ')}
+                          {hasPsum && <span className="ml-1 text-amber-500">⚠</span>}
+                        </span>
+                        <div className="flex flex-wrap gap-0.5 mt-0.5">
+                          {envases.slice(0, 3).map((e: any) => (
+                            <span key={e.id} className={`text-[10px] font-mono ${e.problema_suministro ? 'text-amber-600' : 'text-gray-400'}`}>
+                              {e.volumen_ml ? `${e.volumen_ml}mL` : pres.concentracion_valor ? `${pres.concentracion_valor}${pres.concentracion_unidad}` : 'vial'}
                             </span>
-                          </Tooltip>
-                        )
-                      })}
-                    </div>
+                          ))}
+                          {envases.length > 3 && <span className="text-[10px] text-gray-400">+{envases.length - 3}</span>}
+                        </div>
+                      </div>
+                    </Tooltip>
                   </td>
 
-                  {/* RECONSTITUCIÓN */}
-                  <td className="px-4 py-3">
-                    {condReconst.length > 0 ? (
+                  {/* ── RECONSTITUCIÓN ── */}
+                  <td className="px-3 py-3 bg-blue-50/20">
+                    {reconst.length > 0 ? (
                       <Tooltip
                         content={
                           <div className="space-y-2">
-                            {condReconst.map((c: any) => (
+                            {reconst.map((c: any) => (
                               <div key={c.id}>
                                 <p className="font-medium">{c.diluyente}</p>
                                 {c.concentracion_final_minima != null && (
                                   <p className="text-gray-500">{c.concentracion_final_minima}–{c.concentracion_final_maxima} mg/mL</p>
                                 )}
-                                {c.notas && <p className="text-gray-400 mt-1">{c.notas}</p>}
+                                {c.envase_compatible?.length > 0 && (
+                                  <p className="text-gray-500">Envase: {c.envase_compatible.join(', ')}</p>
+                                )}
+                                {c.notas && <p className="text-gray-400 mt-1 italic">{c.notas}</p>}
                               </div>
                             ))}
                           </div>
                         }
                       >
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer">
-                          {condReconst[0].diluyente.split(' ')[0]}
-                          <span className="text-blue-400">▸</span>
-                        </span>
+                        <div className="cursor-pointer space-y-0.5">
+                          <p className="text-blue-700 font-medium">{reconst[0].diluyente}</p>
+                          {reconst[0].concentracion_final_minima != null && (
+                            <p className="text-gray-500">{reconst[0].concentracion_final_minima}–{reconst[0].concentracion_final_maxima} mg/mL</p>
+                          )}
+                        </div>
                       </Tooltip>
                     ) : (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-gray-300 text-[11px]">No procede</span>
                     )}
                   </td>
 
-                  {/* DILUYENTES */}
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {diluentes.map((d: any) => (
-                        <Tooltip
-                          key={d.id}
-                          content={
-                            <div className="space-y-1">
-                              <p className="font-medium">{d.diluente}</p>
-                              <p className={d.resultado === 'compatible' ? 'text-green-700' : d.resultado === 'incompatible' ? 'text-red-700' : 'text-yellow-700'}>
-                                {d.resultado}
-                              </p>
-                              {d.condiciones && <p className="text-gray-600">{d.condiciones}</p>}
-                              {d.mecanismo && <p className="text-gray-400 italic">{d.mecanismo}</p>}
-                            </div>
-                          }
-                        >
-                          <span className={`px-1.5 py-0.5 rounded border text-[11px] cursor-pointer font-mono ${
-                            d.resultado === 'compatible'   ? 'bg-green-50 border-green-200 text-green-700' :
-                            d.resultado === 'incompatible' ? 'bg-red-50 border-red-200 text-red-700' :
-                            'bg-yellow-50 border-yellow-200 text-yellow-700'
-                          }`}>
-                            {d.resultado === 'compatible' ? '✓' : d.resultado === 'incompatible' ? '✗' : '~'} {d.diluente.split(' ')[0]}
-                          </span>
-                        </Tooltip>
-                      ))}
+                  {/* ── pH / DENSIDAD ── */}
+                  <td className="px-3 py-3 bg-blue-50/20">
+                    <div className="space-y-0.5 text-gray-600">
+                      {pres.ph_minimo != null && pres.ph_maximo != null && (
+                        <p>pH {pres.ph_minimo}–{pres.ph_maximo}</p>
+                      )}
+                      {pres.densidad != null && (
+                        <p>{pres.densidad} g/mL</p>
+                      )}
+                      {pres.ph_minimo == null && pres.densidad == null && (
+                        <span className="text-gray-300">—</span>
+                      )}
                     </div>
                   </td>
 
-                  {/* ENVASE */}
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {envases.map((e: string) => (
-                        <span key={e} className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
-                          {e}
-                        </span>
-                      ))}
+                  {/* ── DILUYENTES (rowspan) ── */}
+                  {isFirst && (
+                    <td rowSpan={total} className="px-3 py-3 bg-green-50/20 border-l border-gray-100 align-top">
+                      <div className="flex flex-wrap gap-1">
+                        {diluentes.map((d: any) => (
+                          <Tooltip
+                            key={d.id}
+                            content={
+                              <div className="space-y-1.5">
+                                <p className="font-semibold">{d.diluente}</p>
+                                <p className={`font-medium ${d.resultado === 'compatible' ? 'text-green-700' : d.resultado === 'incompatible' ? 'text-red-700' : 'text-yellow-700'}`}>
+                                  {d.resultado}
+                                </p>
+                                {d.condiciones && <p className="text-gray-600">{d.condiciones}</p>}
+                                {d.mecanismo && <p className="text-gray-400 italic">{d.mecanismo}</p>}
+                              </div>
+                            }
+                          >
+                            <span className={`px-1.5 py-0.5 rounded border text-[11px] cursor-pointer font-mono ${
+                              d.resultado === 'compatible'   ? 'bg-green-50 border-green-200 text-green-700' :
+                              d.resultado === 'incompatible' ? 'bg-red-50 border-red-200 text-red-600' :
+                              'bg-yellow-50 border-yellow-200 text-yellow-700'
+                            }`}>
+                              {d.resultado === 'compatible' ? '✓' : d.resultado === 'incompatible' ? '✗' : '~'} {d.diluente.replace('para preparaciones inyectables', '').replace('para perfusión', '').trim()}
+                            </span>
+                          </Tooltip>
+                        ))}
+                      </div>
                       {/* Materiales incompatibles */}
-                      {materiales.filter((m: any) => m.resultado === 'incompatible').map((m: any) => (
-                        <Tooltip
-                          key={m.id}
-                          content={<p>{m.condiciones ?? `${m.material}: incompatible`}</p>}
-                        >
-                          <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200 cursor-pointer line-through">
-                            {m.material}
+                      {incompatMat.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {incompatMat.map((m: any) => (
+                            <Tooltip key={m.id} content={<p>{m.condiciones ?? m.material}</p>}>
+                              <span className="px-1.5 py-0.5 rounded bg-red-50 border border-red-200 text-red-600 text-[11px] cursor-pointer line-through">
+                                {m.material}
+                              </span>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  )}
+
+                  {/* ── ENVASE DILUCIÓN (rowspan) ── */}
+                  {isFirst && (
+                    <td rowSpan={total} className="px-3 py-3 bg-green-50/20 align-top">
+                      <div className="flex flex-wrap gap-1">
+                        {envaseDilucion.map((e: string) => (
+                          <span key={e} className="px-1.5 py-0.5 rounded bg-white border border-gray-200 text-gray-600">
+                            {e}
                           </span>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  </td>
+                        ))}
+                        {envaseDilucion.length === 0 && <span className="text-gray-300">—</span>}
+                      </div>
+                    </td>
+                  )}
 
-                  {/* LUZ */}
-                  <td className="px-4 py-3 text-center">
-                    {proteccionLuz ? (
-                      <span className="text-amber-500 text-base" title="Proteger de la luz">☀</span>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
+                  {/* ── LUZ DILUCIÓN (rowspan) ── */}
+                  {isFirst && (
+                    <td rowSpan={total} className="px-3 py-3 bg-green-50/20 text-center align-middle">
+                      {luzDilucion
+                        ? <span className="text-amber-500 text-base" title="Proteger de la luz">☀</span>
+                        : <span className="text-gray-300 text-sm">—</span>
+                      }
+                    </td>
+                  )}
 
-                  {/* ADMINISTRACIÓN */}
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      {admins.map((a: any) => (
+                  {/* ── ADMINISTRACIÓN (rowspan) ── */}
+                  {isFirst && (
+                    <td rowSpan={total} className="px-3 py-3 border-l border-gray-100 align-top">
+                      <div className="space-y-2">
+                        {admins.map((a: any) => (
+                          <Tooltip
+                            key={a.id}
+                            wide
+                            content={
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold uppercase">{a.via}</span>
+                                  {a.clasificacion_tisular && (
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
+                                      {tisularBadge[a.clasificacion_tisular]?.label}
+                                    </span>
+                                  )}
+                                </div>
+                                {a.tiempo_minimo_infusion_min != null && <p>Infusión mínima: <strong>{a.tiempo_minimo_infusion_min} min</strong></p>}
+                                {a.velocidad_maxima_ml_h != null && <p>Velocidad máx.: <strong>{a.velocidad_maxima_ml_h} mL/h</strong></p>}
+                                {a.concentracion_minima_mg_ml != null && <p>Concentración: <strong>{a.concentracion_minima_mg_ml}–{a.concentracion_maxima_mg_ml} mg/mL</strong></p>}
+                                {a.notas && <p className="text-gray-500 text-[11px]">{a.notas}</p>}
+                                {a.procedimiento_extravasacion && (
+                                  <div className="border-t border-gray-100 pt-2">
+                                    <p className="font-semibold text-red-600 mb-1">Protocolo extravasación</p>
+                                    <p className="text-gray-600 whitespace-pre-line">{a.procedimiento_extravasacion}</p>
+                                  </div>
+                                )}
+                              </div>
+                            }
+                          >
+                            <div className="cursor-pointer flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono text-gray-700 uppercase text-[11px]">{a.via}</span>
+                              {a.clasificacion_tisular && (
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
+                                  {tisularBadge[a.clasificacion_tisular]?.label}
+                                </span>
+                              )}
+                              {a.tiempo_minimo_infusion_min != null && (
+                                <span className="text-gray-400 text-[10px]">{a.tiempo_minimo_infusion_min}′</span>
+                              )}
+                            </div>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </td>
+                  )}
+
+                  {/* ── CABINA / EPI (rowspan) ── */}
+                  {isFirst && (
+                    <td rowSpan={total} className="px-3 py-3 align-top">
+                      {matriz ? (
                         <Tooltip
-                          key={a.id}
                           content={
                             <div className="space-y-2">
-                              {a.tiempo_minimo_infusion_min != null && (
-                                <p>Infusión mínima: <strong>{a.tiempo_minimo_infusion_min} min</strong></p>
-                              )}
-                              {a.velocidad_maxima_ml_h != null && (
-                                <p>Velocidad máx.: <strong>{a.velocidad_maxima_ml_h} mL/h</strong></p>
-                              )}
-                              {a.concentracion_minima_mg_ml != null && (
-                                <p>Conc.: <strong>{a.concentracion_minima_mg_ml}–{a.concentracion_maxima_mg_ml} mg/mL</strong></p>
-                              )}
-                              {a.notas && <p className="text-gray-500 text-[11px]">{a.notas}</p>}
-                              {a.procedimiento_extravasacion && (
-                                <div className="border-t border-gray-100 pt-2 mt-2">
-                                  <p className="font-medium text-red-600 mb-1">Extravasación</p>
-                                  <p className="text-gray-600 whitespace-pre-line line-clamp-6">{a.procedimiento_extravasacion}</p>
+                              {matriz.tipo_cabina && <p><strong>Cabina:</strong> {matriz.tipo_cabina}</p>}
+                              {matriz.epi_requerido?.length > 0 && (
+                                <div>
+                                  <p className="font-semibold mb-1">EPI:</p>
+                                  <ul className="list-disc list-inside space-y-0.5 text-gray-600">
+                                    {matriz.epi_requerido.map((e: string) => (
+                                      <li key={e}>{e.replace(/_/g, ' ')}</li>
+                                    ))}
+                                  </ul>
                                 </div>
                               )}
+                              {matriz.requisitos_sala && <p className="text-gray-500">{matriz.requisitos_sala}</p>}
+                              {matriz.gestion_residuos && <p className="text-gray-400 text-[11px] border-t border-gray-100 pt-1 mt-1">{matriz.gestion_residuos}</p>}
                             </div>
                           }
                         >
-                          <span className="inline-flex items-center gap-1 cursor-pointer">
-                            <span className="font-mono text-gray-600 uppercase">{a.via}</span>
-                            {a.clasificacion_tisular && (
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
-                                {tisularBadge[a.clasificacion_tisular]?.label}
-                              </span>
-                            )}
-                            {a.tiempo_minimo_infusion_min && (
-                              <span className="text-gray-400">{a.tiempo_minimo_infusion_min}min</span>
-                            )}
-                          </span>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  </td>
-
-                  {/* CABINA / EPI */}
-                  <td className="px-4 py-3">
-                    {matriz ? (
-                      <Tooltip
-                        content={
-                          <div className="space-y-2">
-                            {matriz.tipo_cabina && <p><strong>Cabina:</strong> {matriz.tipo_cabina}</p>}
-                            {matriz.epi_requerido?.length > 0 && (
-                              <div>
-                                <p className="font-medium mb-1">EPI:</p>
-                                <ul className="list-disc list-inside space-y-0.5 text-gray-600">
-                                  {matriz.epi_requerido.map((e: string) => (
-                                    <li key={e}>{e.replace(/_/g, ' ')}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {matriz.gestion_residuos && (
-                              <p className="text-gray-500 text-[11px]">{matriz.gestion_residuos}</p>
-                            )}
+                          <div className="cursor-pointer">
+                            <p className="text-gray-700 font-medium">{matriz.tipo_cabina?.split(' ').slice(0, 2).join(' ')}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">{matriz.epi_requerido?.length ?? 0} items EPI ▸</p>
                           </div>
-                        }
-                      >
-                        <span className="text-gray-600 cursor-pointer hover:text-gray-900">
-                          {matriz.tipo_cabina?.split(' ')[0] ?? '—'}
-                          <span className="text-gray-400 ml-1">▸</span>
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                  )}
 
                 </tr>
               )
