@@ -15,27 +15,20 @@ const tisularBadge: Record<string, { bg: string; label: string }> = {
   no_irritante:          { bg: 'bg-green-100 text-green-700',   label: 'No irritante' },
 }
 
-/** Superíndice de referencia con tooltip */
-function Ref({ ref: r }: { ref: any }) {
+/** Pie de referencia para incluir al final del contenido de un tooltip */
+function RefFooter({ ref: r }: { ref: any }) {
   if (!r) return null
   return (
-    <Tooltip content={
-      <div className="space-y-1">
-        <p className="font-medium text-gray-800">{r.titulo}</p>
-        {r.autores && <p className="text-gray-500 text-[11px]">{r.autores}</p>}
-        {r.anio && <p className="text-gray-400 text-[11px]">{r.anio}</p>}
-        {r.url && (
-          <a href={r.url} target="_blank" rel="noopener noreferrer"
-            className="text-blue-600 hover:underline block text-[11px]">
-            Ver fuente ↗
-          </a>
-        )}
-      </div>
-    }>
-      <sup className="text-blue-500 cursor-pointer hover:text-blue-700 ml-0.5 text-[9px] font-bold">
-        [{r.tipo_fuente === 'ficha_tecnica' ? 'FT' : r.tipo_fuente === 'stabilis' ? 'Stab' : r.tipo_fuente === 'consenso_grupo' ? 'SEFH' : '?'}]
-      </sup>
-    </Tooltip>
+    <div className="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-400 space-y-0.5">
+      <p className="font-medium text-gray-500">{r.titulo}</p>
+      {r.autores && <p>{r.autores}{r.anio ? `, ${r.anio}` : ''}</p>}
+      {r.url && (
+        <a href={r.url} target="_blank" rel="noopener noreferrer"
+          className="text-blue-500 hover:underline block">
+          Ver fuente ↗
+        </a>
+      )}
+    </div>
   )
 }
 
@@ -175,6 +168,7 @@ export default async function HomePage() {
                                 <p className="text-gray-500 text-[11px]">{matriz.gestion_residuos}</p>
                               </div>
                             )}
+                            <RefFooter ref={matriz.referencia} />
                           </div>
                         }>
                           <span className={`mt-1 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded cursor-pointer underline decoration-dotted ${nioshBadge[drug.clasificacion_niosh]}`}>
@@ -254,7 +248,7 @@ export default async function HomePage() {
                           <div className="space-y-2">
                             {reconst.map((c: any) => (
                               <div key={c.id}>
-                                <p className="font-medium">{c.diluyente}<Ref ref={c.referencia} /></p>
+                                <p className="font-medium">{c.diluyente}</p>
                                 {c.concentracion_final_minima != null && (
                                   <p className="text-gray-500">{c.concentracion_final_minima}–{c.concentracion_final_maxima} mg/mL</p>
                                 )}
@@ -262,6 +256,7 @@ export default async function HomePage() {
                                   <p className="text-gray-500">Envase: {c.envase_compatible.join(', ')}</p>
                                 )}
                                 {c.notas && <p className="text-gray-400 mt-1 italic">{c.notas}</p>}
+                                <RefFooter ref={c.referencia} />
                               </div>
                             ))}
                           </div>
@@ -303,12 +298,13 @@ export default async function HomePage() {
                             key={d.id}
                             content={
                               <div className="space-y-1.5">
-                                <p className="font-semibold">{d.diluente}<Ref ref={d.referencia} /></p>
+                                <p className="font-semibold">{d.diluente}</p>
                                 <p className={`font-medium ${d.resultado === 'compatible' ? 'text-green-700' : d.resultado === 'incompatible' ? 'text-red-700' : 'text-yellow-700'}`}>
                                   {d.resultado}
                                 </p>
                                 {d.condiciones && <p className="text-gray-600">{d.condiciones}</p>}
                                 {d.mecanismo && <p className="text-gray-400 italic">{d.mecanismo}</p>}
+                                <RefFooter ref={d.referencia} />
                               </div>
                             }
                           >
@@ -370,11 +366,12 @@ export default async function HomePage() {
                             {/* Vía + tiempo */}
                             <Tooltip wide content={
                               <div className="space-y-2">
-                                <p className="font-semibold uppercase">Vía {a.via}<Ref ref={a.referencia} /></p>
+                                <p className="font-semibold uppercase">Vía {a.via}</p>
                                 {a.tiempo_minimo_infusion_min != null && <p>Infusión mínima: <strong>{a.tiempo_minimo_infusion_min} min</strong></p>}
                                 {a.velocidad_maxima_ml_h != null && <p>Velocidad máx.: <strong>{a.velocidad_maxima_ml_h} mL/h</strong></p>}
                                 {a.concentracion_minima_mg_ml != null && <p>Conc.: <strong>{a.concentracion_minima_mg_ml}–{a.concentracion_maxima_mg_ml} mg/mL</strong></p>}
-                                {a.notas && <p className="text-gray-500 text-[11px] border-t border-gray-100 pt-1">{a.notas}</p>}
+                                {a.notas && <p className="text-gray-500 text-[11px]">{a.notas}</p>}
+                                <RefFooter ref={a.referencia} />
                               </div>
                             }>
                               <div className="cursor-pointer">
@@ -388,16 +385,14 @@ export default async function HomePage() {
                             {a.clasificacion_tisular && (
                               <Tooltip wide content={
                                 <div className="space-y-2">
-                                  <div className="flex items-center gap-1">
-                                    <span className={`inline-block px-2 py-0.5 rounded font-medium text-[11px] ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
-                                      {tisularBadge[a.clasificacion_tisular]?.label}
-                                    </span>
-                                    <Ref ref={a.referencia} />
-                                  </div>
+                                  <span className={`inline-block px-2 py-0.5 rounded font-medium text-[11px] ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
+                                    {tisularBadge[a.clasificacion_tisular]?.label}
+                                  </span>
                                   {a.procedimiento_extravasacion
                                     ? <p className="text-gray-600 whitespace-pre-line text-[11px]">{a.procedimiento_extravasacion}</p>
                                     : <p className="text-gray-400 italic">Sin protocolo específico.</p>
                                   }
+                                  <RefFooter ref={a.referencia} />
                                 </div>
                               }>
                                 <div className="cursor-pointer flex items-center gap-1">
