@@ -100,9 +100,7 @@ export default async function HomePage() {
               <th className="text-center px-3 py-2.5 font-semibold w-12 bg-green-50/50">Luz</th>
 
               {/* Grupo: administración */}
-              <th className="text-left px-3 py-2.5 font-semibold w-32 border-l border-gray-100">Administración</th>
-              <th className="text-left px-3 py-2.5 font-semibold w-32">Extravasación</th>
-              <th className="text-left px-3 py-2.5 font-semibold w-36 border-l border-gray-100">Manipulación</th>
+              <th className="text-left px-3 py-2.5 font-semibold w-44 border-l border-gray-100">Administración</th>
             </tr>
             {/* Subheader de grupos */}
             <tr className="text-[9px] text-gray-400 border-b border-gray-200 bg-gray-50">
@@ -110,7 +108,7 @@ export default async function HomePage() {
               <td className="px-3 py-1 border-r border-gray-100" />
               <td className="px-3 py-1 bg-blue-50/50 text-blue-400 font-semibold" colSpan={2}>VIAL RECONSTITUIDO</td>
               <td className="px-3 py-1 bg-green-50/50 text-green-500 font-semibold border-l border-gray-100" colSpan={3}>DILUCIÓN</td>
-              <td className="px-3 py-1 border-l border-gray-100" colSpan={3} />
+              <td className="px-3 py-1 border-l border-gray-100" />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -131,11 +129,36 @@ export default async function HomePage() {
                       className="px-3 py-3 sticky left-0 bg-white z-10 border-r border-gray-200 align-middle"
                     >
                       <p className="font-bold text-gray-900 capitalize text-sm">{drug.dci}</p>
-                      {drug.clasificacion_niosh && (
+                      {drug.clasificacion_niosh && matriz ? (
+                        <Tooltip content={
+                          <div className="space-y-2">
+                            {matriz.tipo_cabina && <div><p className="font-semibold mb-0.5">Cabina</p><p>{matriz.tipo_cabina}</p></div>}
+                            {matriz.epi_requerido?.length > 0 && (
+                              <div>
+                                <p className="font-semibold mb-1">EPI requerido</p>
+                                <ul className="list-disc list-inside space-y-0.5 text-gray-600">
+                                  {matriz.epi_requerido.map((e: string) => <li key={e}>{e.replace(/_/g, ' ')}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                            {matriz.requisitos_sala && <div><p className="font-semibold mb-0.5">Sala</p><p className="text-gray-600">{matriz.requisitos_sala}</p></div>}
+                            {matriz.gestion_residuos && (
+                              <div className="border-t border-gray-100 pt-1.5">
+                                <p className="font-semibold mb-0.5">Residuos</p>
+                                <p className="text-gray-500 text-[11px]">{matriz.gestion_residuos}</p>
+                              </div>
+                            )}
+                          </div>
+                        }>
+                          <span className={`mt-1 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded cursor-pointer underline decoration-dotted ${nioshBadge[drug.clasificacion_niosh]}`}>
+                            NIOSH {drug.clasificacion_niosh.replace('_', ' ')}
+                          </span>
+                        </Tooltip>
+                      ) : drug.clasificacion_niosh ? (
                         <span className={`mt-1 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${nioshBadge[drug.clasificacion_niosh]}`}>
                           NIOSH {drug.clasificacion_niosh.replace('_', ' ')}
                         </span>
-                      )}
+                      ) : null}
                       {drug.atc_code && (
                         <p className="text-[10px] text-gray-400 font-mono mt-0.5">{drug.atc_code}</p>
                       )}
@@ -180,6 +203,9 @@ export default async function HomePage() {
                         <span className={`font-medium ${hasPsum ? 'text-amber-700' : 'text-gray-800'}`}>
                           {pres.laboratorio_titular?.split(' ').slice(0, 2).join(' ')}
                           {hasPsum && <span className="ml-1 text-amber-500">⚠</span>}
+                          {pres.temperatura_conservacion === 'nevera' && (
+                            <span className="ml-1 text-blue-400" title="Conservar en nevera (2-8°C)">❄</span>
+                          )}
                         </span>
                         <div className="flex flex-wrap gap-0.5 mt-0.5">
                           {envases.slice(0, 3).map((e: any) => (
@@ -308,109 +334,55 @@ export default async function HomePage() {
                     </td>
                   )}
 
-                  {/* ── ADMINISTRACIÓN (rowspan) ── */}
+                  {/* ── ADMINISTRACIÓN + EXTRAVASACIÓN (rowspan) ── */}
                   {isFirst && (
                     <td rowSpan={total} className="px-3 py-3 border-l border-gray-100 align-top">
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {admins.map((a: any) => (
-                          <Tooltip key={a.id} wide content={
-                            <div className="space-y-2">
-                              <p className="font-semibold uppercase">Vía {a.via}</p>
-                              {a.tiempo_minimo_infusion_min != null && <p>Infusión mínima: <strong>{a.tiempo_minimo_infusion_min} min</strong></p>}
-                              {a.velocidad_maxima_ml_h != null && <p>Velocidad máx.: <strong>{a.velocidad_maxima_ml_h} mL/h</strong></p>}
-                              {a.concentracion_minima_mg_ml != null && <p>Conc.: <strong>{a.concentracion_minima_mg_ml}–{a.concentracion_maxima_mg_ml} mg/mL</strong></p>}
-                              {a.notas && <p className="text-gray-500 text-[11px] border-t border-gray-100 pt-1">{a.notas}</p>}
-                            </div>
-                          }>
-                            <div className="cursor-pointer">
-                              <span className="font-mono text-gray-700 uppercase text-[11px]">Vía {a.via}</span>
-                              {a.tiempo_minimo_infusion_min != null && (
-                                <p className="text-gray-400 text-[10px]">mín. {a.tiempo_minimo_infusion_min} min</p>
-                              )}
-                            </div>
-                          </Tooltip>
-                        ))}
-                      </div>
-                    </td>
-                  )}
-
-                  {/* ── EXTRAVASACIÓN (rowspan) ── */}
-                  {isFirst && (
-                    <td rowSpan={total} className="px-3 py-3 align-top">
-                      <div className="space-y-2">
-                        {admins.map((a: any) => (
-                          <Tooltip key={a.id} wide content={
-                            <div className="space-y-2">
-                              {a.clasificacion_tisular && (
-                                <span className={`inline-block px-2 py-0.5 rounded font-medium text-[11px] ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
-                                  {tisularBadge[a.clasificacion_tisular]?.label}
-                                </span>
-                              )}
-                              {a.procedimiento_extravasacion
-                                ? <p className="text-gray-600 whitespace-pre-line text-[11px]">{a.procedimiento_extravasacion}</p>
-                                : <p className="text-gray-400 italic">Sin protocolo específico.</p>
-                              }
-                            </div>
-                          }>
-                            <div className="cursor-pointer">
-                              {a.clasificacion_tisular ? (
-                                <>
-                                  <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
+                          <div key={a.id} className="space-y-1">
+                            {/* Vía + tiempo */}
+                            <Tooltip wide content={
+                              <div className="space-y-2">
+                                <p className="font-semibold uppercase">Vía {a.via}</p>
+                                {a.tiempo_minimo_infusion_min != null && <p>Infusión mínima: <strong>{a.tiempo_minimo_infusion_min} min</strong></p>}
+                                {a.velocidad_maxima_ml_h != null && <p>Velocidad máx.: <strong>{a.velocidad_maxima_ml_h} mL/h</strong></p>}
+                                {a.concentracion_minima_mg_ml != null && <p>Conc.: <strong>{a.concentracion_minima_mg_ml}–{a.concentracion_maxima_mg_ml} mg/mL</strong></p>}
+                                {a.notas && <p className="text-gray-500 text-[11px] border-t border-gray-100 pt-1">{a.notas}</p>}
+                              </div>
+                            }>
+                              <div className="cursor-pointer">
+                                <span className="font-mono text-gray-700 uppercase text-[11px]">Vía {a.via}</span>
+                                {a.tiempo_minimo_infusion_min != null && (
+                                  <span className="text-gray-400 text-[10px] ml-1">· mín. {a.tiempo_minimo_infusion_min} min</span>
+                                )}
+                              </div>
+                            </Tooltip>
+                            {/* Extravasación */}
+                            {a.clasificacion_tisular && (
+                              <Tooltip wide content={
+                                <div className="space-y-2">
+                                  <span className={`inline-block px-2 py-0.5 rounded font-medium text-[11px] ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
+                                    {tisularBadge[a.clasificacion_tisular]?.label}
+                                  </span>
+                                  {a.procedimiento_extravasacion
+                                    ? <p className="text-gray-600 whitespace-pre-line text-[11px]">{a.procedimiento_extravasacion}</p>
+                                    : <p className="text-gray-400 italic">Sin protocolo específico.</p>
+                                  }
+                                </div>
+                              }>
+                                <div className="cursor-pointer flex items-center gap-1">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
                                     {tisularBadge[a.clasificacion_tisular]?.label}
                                   </span>
                                   {a.procedimiento_extravasacion && (
-                                    <p className="text-[10px] text-gray-400 mt-0.5">Ver protocolo ▸</p>
+                                    <span className="text-[10px] text-gray-400">▸</span>
                                   )}
-                                </>
-                              ) : <span className="text-gray-300">—</span>}
-                            </div>
-                          </Tooltip>
+                                </div>
+                              </Tooltip>
+                            )}
+                          </div>
                         ))}
                       </div>
-                    </td>
-                  )}
-
-                  {/* ── MANIPULACIÓN (rowspan) ── */}
-                  {isFirst && (
-                    <td rowSpan={total} className="px-3 py-3 border-l border-gray-100 align-top">
-                      {matriz ? (
-                        <Tooltip wide content={
-                          <div className="space-y-2">
-                            {matriz.tipo_cabina && <div><p className="font-semibold mb-0.5">Cabina</p><p>{matriz.tipo_cabina}</p></div>}
-                            {matriz.epi_requerido?.length > 0 && (
-                              <div>
-                                <p className="font-semibold mb-1">EPI requerido</p>
-                                <ul className="list-disc list-inside space-y-0.5 text-gray-600">
-                                  {matriz.epi_requerido.map((e: string) => <li key={e}>{e.replace(/_/g, ' ')}</li>)}
-                                </ul>
-                              </div>
-                            )}
-                            {matriz.requisitos_sala && <div><p className="font-semibold mb-0.5">Sala</p><p className="text-gray-600">{matriz.requisitos_sala}</p></div>}
-                            {matriz.gestion_residuos && (
-                              <div className="border-t border-gray-100 pt-1.5">
-                                <p className="font-semibold mb-0.5">Residuos</p>
-                                <p className="text-gray-500 text-[11px]">{matriz.gestion_residuos}</p>
-                              </div>
-                            )}
-                          </div>
-                        }>
-                          <div className="cursor-pointer space-y-1">
-                            <p className="text-gray-700 font-medium text-[11px]">{matriz.tipo_cabina}</p>
-                            {matriz.epi_requerido?.length > 0 && (
-                              <div className="flex flex-wrap gap-0.5">
-                                {matriz.epi_requerido.slice(0, 3).map((e: string) => (
-                                  <span key={e} className="text-[10px] bg-gray-100 text-gray-600 px-1 py-0.5 rounded">
-                                    {e.split('_')[0]}
-                                  </span>
-                                ))}
-                                {matriz.epi_requerido.length > 3 && (
-                                  <span className="text-[10px] text-gray-400">+{matriz.epi_requerido.length - 3} ▸</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </Tooltip>
-                      ) : <span className="text-gray-300">—</span>}
                     </td>
                   )}
 
