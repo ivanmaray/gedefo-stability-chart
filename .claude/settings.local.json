@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(supabase --version)",
+      "Bash(supabase projects:*)",
+      "Bash(git init:*)",
+      "Bash(supabase init:*)",
+      "Bash(supabase link:*)",
+      "Bash(git remote:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(supabase db:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(supabase gen:*)"
+    ]
+  }
+}
