@@ -10,9 +10,8 @@ interface PageProps {
 }
 
 const nioshBadge: Record<string, string> = {
-  grupo_1: 'bg-red-100 text-red-700 border-red-200',
-  grupo_2: 'bg-orange-100 text-orange-700 border-orange-200',
-  grupo_3: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  tabla_1: 'bg-red-100 text-red-700 border-red-200',
+  tabla_2: 'bg-orange-100 text-orange-700 border-orange-200',
 }
 
 export default async function FarmacoPage({ params }: PageProps) {
@@ -49,7 +48,7 @@ export default async function FarmacoPage({ params }: PageProps) {
           <h1 className="text-3xl font-bold text-gray-900 capitalize">{pa.dci}</h1>
           {pa.clasificacion_niosh && (
             <span className={`mt-1 text-xs font-medium px-2 py-0.5 rounded-full border ${nioshBadge[pa.clasificacion_niosh]}`}>
-              NIOSH {pa.clasificacion_niosh.replace('_', ' ')}
+              NIOSH 2024 {pa.clasificacion_niosh.replace('_', ' ')}
             </span>
           )}
         </div>

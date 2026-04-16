@@ -4,9 +4,8 @@ import type { Database } from '@/lib/types'
 type PrincipioActivo = Database['public']['Tables']['principio_activo']['Row']
 
 const nioshBadge: Record<string, string> = {
-  grupo_1: 'bg-red-100 text-red-700 border-red-200',
-  grupo_2: 'bg-orange-100 text-orange-700 border-orange-200',
-  grupo_3: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  tabla_1: 'bg-red-100 text-red-700 border-red-200',
+  tabla_2: 'bg-orange-100 text-orange-700 border-orange-200',
 }
 
 export default function DrugList({ drugs }: { drugs: PrincipioActivo[] }) {
@@ -38,7 +37,7 @@ export default function DrugList({ drugs }: { drugs: PrincipioActivo[] }) {
             <div className="flex items-center gap-2">
               {drug.clasificacion_niosh && (
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${nioshBadge[drug.clasificacion_niosh] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                  NIOSH {drug.clasificacion_niosh.replace('_', ' ')}
+                  NIOSH 2024 {drug.clasificacion_niosh.replace('_', ' ')}
                 </span>
               )}
               <svg className="w-4 h-4 text-gray-300 group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

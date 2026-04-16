@@ -25,7 +25,7 @@ INSERT INTO principio_activo (id, dci, atc_code, familia_farmacologica, sinonimo
     'L01XA01',
     'Agentes alquilantes — compuestos de platino',
     ARRAY['cis-diaminodicloroplatino','CDDP','cis-platino'],
-    'grupo_1',
+    'tabla_1',
     'Dosis en pediatría basada en mg/m². Hidratación intensiva obligatoria. Nefrotoxicidad especialmente relevante en neonatos y lactantes.',
     'Citotóxico NIOSH grupo 1. Preparación exclusiva en cabina de seguridad biológica clase II (CSB-II) o CACI. Incompatible con aluminio (degradación). Fotosensible. Nefrotóxico, ototóxico, emetógeno de alto potencial.'
   ),
@@ -35,7 +35,7 @@ INSERT INTO principio_activo (id, dci, atc_code, familia_farmacologica, sinonimo
     'L01AA01',
     'Agentes alquilantes — mostazas nitrogenadas',
     ARRAY['ciclofosfamide','CTX','CPM'],
-    'grupo_1',
+    'tabla_1',
     'Dosis pediátricas en mg/kg o mg/m². Vigilar cistitis hemorrágica (usar mesna profiláctico). Excreción renal, ajustar en insuficiencia renal.',
     'Citotóxico NIOSH grupo 1. Metabolismo hepático a metabolitos activos (aldofosfamida, mostaza fosforamídica). Urotóxico — administrar mesna y forzar hidratación. Preparación en CSB-II o CACI.'
   ),
@@ -45,7 +45,7 @@ INSERT INTO principio_activo (id, dci, atc_code, familia_farmacologica, sinonimo
     'L01DB01',
     'Antibióticos citotóxicos — antraciclinas',
     ARRAY['doxorubicina','adriamicina','ADM'],
-    'grupo_1',
+    'tabla_1',
     'Dosis pediátricas en mg/m². Monitorizar función cardíaca (ecocardiograma). Dosis acumulada máxima 300-360 mg/m² en niños (menor que adultos).',
     'Citotóxico NIOSH grupo 1. Vesicante potente — extravasación requiere protocolo inmediato (dexrazoxano). Fotosensible. Cardiotóxico acumulativo. Coloración roja intensa de orina 1-2 días post-administración (informar al paciente). Preparación en CSB-II o CACI.'
   );
@@ -292,25 +292,25 @@ INSERT INTO compatibilidad_material (principio_activo_id, material, resultado, c
 INSERT INTO matriz_riesgo (principio_activo_id, clasificacion_niosh, nivel_contencion, epi_requerido, tipo_cabina, requisitos_sala, gestion_residuos) VALUES
   (
     'b1000000-0000-0000-0000-000000000001',
-    'grupo_1', 'contencion_maxima',
+    'tabla_1', 'contencion_maxima',
     ARRAY['guantes_qt_dobles','bata_cerrada','gafas','mascarilla_ffp2'],
     'CSB-II o CACI',
     'Sala de citostáticos con presión negativa, HEPA, acceso restringido',
-    'Residuo citotóxico — contenedor rígido amarillo específico para citostáticos (código LER 18 01 08*). Gestión por empresa autorizada.'
+    'Residuo citotóxico (código LER 18 01 08*). Contenedor rígido según normativa autonómica vigente. Gestión por empresa autorizada.'
   ),
   (
     'b1000000-0000-0000-0000-000000000002',
-    'grupo_1', 'contencion_maxima',
+    'tabla_1', 'contencion_maxima',
     ARRAY['guantes_qt_dobles','bata_cerrada','gafas','mascarilla_ffp2'],
     'CSB-II o CACI',
     'Sala de citostáticos con presión negativa, HEPA, acceso restringido',
-    'Residuo citotóxico — contenedor rígido amarillo específico para citostáticos (código LER 18 01 08*). Gestión por empresa autorizada.'
+    'Residuo citotóxico (código LER 18 01 08*). Contenedor rígido según normativa autonómica vigente. Gestión por empresa autorizada.'
   ),
   (
     'b1000000-0000-0000-0000-000000000003',
-    'grupo_1', 'contencion_maxima',
+    'tabla_1', 'contencion_maxima',
     ARRAY['guantes_qt_dobles','bata_cerrada','gafas','mascarilla_ffp2'],
     'CSB-II o CACI',
     'Sala de citostáticos con presión negativa, HEPA, acceso restringido',
-    'Residuo citotóxico — contenedor rígido amarillo específico para citostáticos (código LER 18 01 08*). Ojo: orina roja 48h post-administración — gestionar como citotóxico. Gestión por empresa autorizada.'
+    'Residuo citotóxico (código LER 18 01 08*). Contenedor rígido según normativa autonómica vigente. Ojo: orina roja 48h post-administración — gestionar como citotóxico. Gestión por empresa autorizada.'
   );
