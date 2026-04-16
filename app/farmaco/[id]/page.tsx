@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import PresentationCard from '@/components/PresentationCard'
 import StabilityTable from '@/components/StabilityTable'
 
-export const revalidate = 60
+export const revalidate = 0
 
 interface PageProps {
   params: { id: string }

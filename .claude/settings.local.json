@@ -35,7 +35,8 @@
       "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) cns=[p.get\\('cn','?'\\) for p in d.get\\('presentaciones',[]\\)] print\\(f\\\\\" nombre: {d.get\\('nombre','?'\\)}\\\\\"\\) print\\(f\\\\\" lab: {d.get\\('labtitular','?'\\)}\\\\\"\\) print\\(f\\\\\" psum: {d.get\\('psum',False\\)}\\\\\"\\) print\\(f\\\\\" comerc: {d.get\\('comerc',False\\)}\\\\\"\\) print\\(f\\\\\" CNs: {cns}\\\\\"\\) print\\(f\\\\\" FT: {next\\(\\(x['urlHtml'] for x in d.get\\('docs',[]\\) if x['tipo']==1\\),'N/A'\\)}\\\\\"\\) \" done)",
       "Bash(curl -s \"https://cima.aemps.es/cima/rest/medicamento?nregistro=72609\")",
       "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) for p in d.get\\('presentaciones',[]\\): print\\(f\\\\\" CN={p.get\\('cn'\\)} | {p.get\\('nombre','?'\\)[:80]} | comerc={p.get\\('comerc',False\\)} | psum={p.get\\('psum',False\\)}\\\\\"\\) \" done)",
-      "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) for p in d.get\\('presentaciones',[]\\): if p.get\\('comerc',False\\): print\\(f\\\\\" CN={p.get\\('cn'\\)} | {p.get\\('nombre','?'\\)} | psum={p.get\\('psum',False\\)}\\\\\"\\) \" done)"
+      "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) for p in d.get\\('presentaciones',[]\\): if p.get\\('comerc',False\\): print\\(f\\\\\" CN={p.get\\('cn'\\)} | {p.get\\('nombre','?'\\)} | psum={p.get\\('psum',False\\)}\\\\\"\\) \" done)",
+      "Bash(curl:*)"
     ]
   }
 }
