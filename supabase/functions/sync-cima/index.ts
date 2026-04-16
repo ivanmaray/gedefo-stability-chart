@@ -87,6 +87,10 @@ async function syncOne(
     // Mapear campos CIMA → presentacion_comercial
     const mapped = mapCimaToPresentation(cimaData)
 
+    // Parsear sección 6.4 de la ficha técnica
+    const conservacion = await parseFT64(cn, mapped.ficha_tecnica_url)
+    Object.assign(mapped, conservacion)
+
     // Buscar si existe la presentación en BD
     const { data: existing } = await supabase
       .from('presentacion_comercial')
@@ -156,6 +160,63 @@ function mapCimaToPresentation(d: any) {
     estado_comercializacion: d.estado?.aut ?? null,
     ficha_tecnica_url: d.docs?.find((doc: { tipo: number }) => doc.tipo === 1)?.url ?? null,
   }
+}
+
+/**
+ * Descarga la ficha técnica HTML de CIMA y extrae la sección 6.4
+ * (Precauciones especiales de conservación del vial sin abrir).
+ *
+ * Devuelve:
+ *   temperatura_conservacion: 'nevera' | 'ambiente' | 'congelar' | null
+ *   proteccion_luz_almacenamiento: boolean | null
+ *
+ * Criterios de extracción (orden de prioridad):
+ *   - "nevera" / "2°C y 8°C"  → nevera
+ *   - "congelar"               → congelar
+ *   - "no refrigerar" / "no conservar a temperatura superior a 25" / "no requiere" → ambiente
+ *   - mención de "luz" / "embalaje exterior" / "proteg" → proteccion_luz = true
+ */
+async function parseFT64(
+  nregistro: string,
+  ftHtmlUrl: string | null,
+): Promise<{ temperatura_conservacion: string | null; proteccion_luz_almacenamiento: boolean | null }> {
+  const url = ftHtmlUrl?.replace('/pdfs/ft/', '/dochtml/ft/')?.replace('.pdf', '.html')
+    ?? `https://cima.aemps.es/cima/dochtml/ft/${nregistro}/FT_${nregistro}.html`
+
+  let section = ''
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return { temperatura_conservacion: null, proteccion_luz_almacenamiento: null }
+    const html = await res.text()
+
+    // Extraer entre "6.4" y "6.5"
+    const m = html.match(/6\.4[\s\S]*?conservaci[oó]n([\s\S]*?)(?=6\.5\b)/i)
+      ?? html.match(/6\.4([\s\S]*?)6\.5/i)
+    if (!m) return { temperatura_conservacion: null, proteccion_luz_almacenamiento: null }
+
+    // Strip HTML tags
+    section = m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').toLowerCase()
+  } catch {
+    return { temperatura_conservacion: null, proteccion_luz_almacenamiento: null }
+  }
+
+  // Determinar temperatura
+  let temperatura_conservacion: string | null = null
+  if (/nevera|entre\s*2.*8\s*[°º]c/i.test(section)) {
+    temperatura_conservacion = 'nevera'
+  } else if (/congelar|−?\d+\s*[°º]c/i.test(section)) {
+    temperatura_conservacion = 'congelar'
+  } else if (
+    /no refriger|no conservar a temperatura superior|temperatura inferior a 25|no requiere condiciones especiales/i.test(section)
+  ) {
+    temperatura_conservacion = 'ambiente'
+  }
+
+  // Determinar protección de luz
+  const proteccion_luz_almacenamiento =
+    /luz|embalaje exterior|envase original|proteg/i.test(section) ? true : false
+
+  return { temperatura_conservacion, proteccion_luz_almacenamiento }
 }
 
 // deno-lint-ignore no-explicit-any
