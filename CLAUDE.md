@@ -194,7 +194,6 @@ Estructura preparada, población en fase 2.
 | id | uuid PK | |
 | principio_activo_id | uuid FK NOT NULL UNIQUE | |
 | clasificacion_niosh | text | grupo_1, grupo_2, grupo_3 |
-| nivel_contencion | text | |
 | epi_requerido | text[] | Array: {'guantes_qt', 'bata', 'gafas', 'mascarilla_ffp2', ...} |
 | tipo_cabina | text | CSB-II, CACI, etc. |
 | requisitos_sala | text | |

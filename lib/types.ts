@@ -431,7 +431,6 @@ export type Database = {
           epi_requerido: string[] | null
           gestion_residuos: string | null
           id: string
-          nivel_contencion: string | null
           notas: string | null
           principio_activo_id: string
           requisitos_sala: string | null
@@ -444,7 +443,6 @@ export type Database = {
           epi_requerido?: string[] | null
           gestion_residuos?: string | null
           id?: string
-          nivel_contencion?: string | null
           notas?: string | null
           principio_activo_id: string
           requisitos_sala?: string | null
@@ -457,7 +455,6 @@ export type Database = {
           epi_requerido?: string[] | null
           gestion_residuos?: string | null
           id?: string
-          nivel_contencion?: string | null
           notas?: string | null
           principio_activo_id?: string
           requisitos_sala?: string | null
