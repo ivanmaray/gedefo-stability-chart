@@ -127,22 +127,6 @@ export default async function FarmacoPage({ params }: PageProps) {
                 {c.proteccion_luz && <InfoRow label="Luz" value="Proteger de la luz" />}
               </div>
 
-              {/* Estabilidad del reconstituido */}
-              {(() => {
-                const estReconst = estabilidades?.filter(
-                  (e) => e.presentacion_comercial_id != null && e.concentracion_mg_ml != null &&
-                    c.concentracion_final_maxima != null &&
-                    e.concentracion_mg_ml >= (c.concentracion_final_minima ?? 0) &&
-                    e.concentracion_mg_ml <= (c.concentracion_final_maxima ?? Infinity)
-                ) ?? []
-                return estReconst.length > 0 ? (
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-1.5">Estabilidad tras reconstitución</p>
-                    <StabilityTable estabilidades={estReconst} />
-                  </div>
-                ) : null
-              })()}
-
               {c.notas && <p className="text-xs text-gray-500">{c.notas}</p>}
             </div>
           ))}
