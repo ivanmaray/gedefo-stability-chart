@@ -20,7 +20,22 @@
       "Bash(npm run:*)",
       "Bash(pkill -f \"next dev\")",
       "Bash(supabase sql:*)",
-      "Bash(supabase --help)"
+      "Bash(supabase --help)",
+      "Bash(curl -s \"https://cima.aemps.es/cima/rest/medicamento?cn=603411\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s --max-time 10 \"https://cima.aemps.es/cima/rest/medicamento?cn=603411\")",
+      "Bash(curl -v --max-time 10 \"https://cima.aemps.es/cima/rest/medicamento?cn=603411\")",
+      "Bash(curl -s --max-time 10 \"https://cima.aemps.es/cima/rest/medicamento?cn=603411\" -o /tmp/cima_resp.json)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(curl -s --max-time 10 -w \"\\\\n---HTTP:%{http_code}---\" \"https://cima.aemps.es/cima/rest/medicamentos?practiv1=cisplatino\")",
+      "Bash(curl -s \"https://cima.aemps.es/cima/rest/medicamentos?practiv1=ciclofosfamida\")",
+      "Bash(python3 -c ':*)",
+      "Bash(curl -s \"https://cima.aemps.es/cima/rest/medicamentos?practiv1=doxorrubicina\")",
+      "Bash(curl -s \"https://cima.aemps.es/cima/rest/medicamentos?practiv1=doxorubicina\")",
+      "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) cns=[p.get\\('cn','?'\\) for p in d.get\\('presentaciones',[]\\)] print\\(f\\\\\" nombre: {d.get\\('nombre','?'\\)}\\\\\"\\) print\\(f\\\\\" lab: {d.get\\('labtitular','?'\\)}\\\\\"\\) print\\(f\\\\\" psum: {d.get\\('psum',False\\)}\\\\\"\\) print\\(f\\\\\" comerc: {d.get\\('comerc',False\\)}\\\\\"\\) print\\(f\\\\\" CNs: {cns}\\\\\"\\) print\\(f\\\\\" FT: {next\\(\\(x['urlHtml'] for x in d.get\\('docs',[]\\) if x['tipo']==1\\),'N/A'\\)}\\\\\"\\) \" done)",
+      "Bash(curl -s \"https://cima.aemps.es/cima/rest/medicamento?nregistro=72609\")",
+      "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) for p in d.get\\('presentaciones',[]\\): print\\(f\\\\\" CN={p.get\\('cn'\\)} | {p.get\\('nombre','?'\\)[:80]} | comerc={p.get\\('comerc',False\\)} | psum={p.get\\('psum',False\\)}\\\\\"\\) \" done)",
+      "Bash(python3 -c \" import json,sys d=json.load\\(sys.stdin\\) for p in d.get\\('presentaciones',[]\\): if p.get\\('comerc',False\\): print\\(f\\\\\" CN={p.get\\('cn'\\)} | {p.get\\('nombre','?'\\)} | psum={p.get\\('psum',False\\)}\\\\\"\\) \" done)"
     ]
   }
 }

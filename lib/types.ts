@@ -497,6 +497,7 @@ export type Database = {
           ph_maximo: number | null
           ph_minimo: number | null
           principio_activo_id: string
+          problema_suministro: boolean
           proteccion_luz_almacenamiento: boolean
           temperatura_conservacion: string | null
           updated_at: string
@@ -524,6 +525,7 @@ export type Database = {
           ph_maximo?: number | null
           ph_minimo?: number | null
           principio_activo_id: string
+          problema_suministro?: boolean
           proteccion_luz_almacenamiento?: boolean
           temperatura_conservacion?: string | null
           updated_at?: string
@@ -551,6 +553,7 @@ export type Database = {
           ph_maximo?: number | null
           ph_minimo?: number | null
           principio_activo_id?: string
+          problema_suministro?: boolean
           proteccion_luz_almacenamiento?: boolean
           temperatura_conservacion?: string | null
           updated_at?: string
