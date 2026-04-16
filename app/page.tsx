@@ -15,19 +15,46 @@ const tisularBadge: Record<string, { bg: string; label: string }> = {
   no_irritante:          { bg: 'bg-green-100 text-green-700',   label: 'No irritante' },
 }
 
+/** Superíndice de referencia con tooltip */
+function Ref({ ref: r }: { ref: any }) {
+  if (!r) return null
+  return (
+    <Tooltip content={
+      <div className="space-y-1">
+        <p className="font-medium text-gray-800">{r.titulo}</p>
+        {r.autores && <p className="text-gray-500 text-[11px]">{r.autores}</p>}
+        {r.anio && <p className="text-gray-400 text-[11px]">{r.anio}</p>}
+        {r.url && (
+          <a href={r.url} target="_blank" rel="noopener noreferrer"
+            className="text-blue-600 hover:underline block text-[11px]">
+            Ver fuente ↗
+          </a>
+        )}
+      </div>
+    }>
+      <sup className="text-blue-500 cursor-pointer hover:text-blue-700 ml-0.5 text-[9px] font-bold">
+        [{r.tipo_fuente === 'ficha_tecnica' ? 'FT' : r.tipo_fuente === 'stabilis' ? 'Stab' : r.tipo_fuente === 'consenso_grupo' ? 'SEFH' : '?'}]
+      </sup>
+    </Tooltip>
+  )
+}
+
 export default async function HomePage() {
-  const { data: drugs, error } = await supabase
-    .from('principio_activo')
-    .select(`
-      *,
-      presentacion_comercial ( *, envase(*) ),
-      condicion_preparacion (*),
-      administracion (*),
-      compatibilidad_diluente (*),
-      compatibilidad_material (*),
-      matriz_riesgo (*)
-    `)
-    .order('dci')
+  const [{ data: drugs, error }, { data: referencias }] = await Promise.all([
+    supabase
+      .from('principio_activo')
+      .select(`
+        *,
+        presentacion_comercial ( *, envase(*) ),
+        condicion_preparacion ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
+        administracion ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
+        compatibilidad_diluente ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
+        compatibilidad_material ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
+        matriz_riesgo ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) )
+      `)
+      .order('dci'),
+    supabase.from('referencia').select('*').order('tipo_fuente'),
+  ])
 
   if (error) {
     return (
@@ -227,7 +254,7 @@ export default async function HomePage() {
                           <div className="space-y-2">
                             {reconst.map((c: any) => (
                               <div key={c.id}>
-                                <p className="font-medium">{c.diluyente}</p>
+                                <p className="font-medium">{c.diluyente}<Ref ref={c.referencia} /></p>
                                 {c.concentracion_final_minima != null && (
                                   <p className="text-gray-500">{c.concentracion_final_minima}–{c.concentracion_final_maxima} mg/mL</p>
                                 )}
@@ -276,7 +303,7 @@ export default async function HomePage() {
                             key={d.id}
                             content={
                               <div className="space-y-1.5">
-                                <p className="font-semibold">{d.diluente}</p>
+                                <p className="font-semibold">{d.diluente}<Ref ref={d.referencia} /></p>
                                 <p className={`font-medium ${d.resultado === 'compatible' ? 'text-green-700' : d.resultado === 'incompatible' ? 'text-red-700' : 'text-yellow-700'}`}>
                                   {d.resultado}
                                 </p>
@@ -343,7 +370,7 @@ export default async function HomePage() {
                             {/* Vía + tiempo */}
                             <Tooltip wide content={
                               <div className="space-y-2">
-                                <p className="font-semibold uppercase">Vía {a.via}</p>
+                                <p className="font-semibold uppercase">Vía {a.via}<Ref ref={a.referencia} /></p>
                                 {a.tiempo_minimo_infusion_min != null && <p>Infusión mínima: <strong>{a.tiempo_minimo_infusion_min} min</strong></p>}
                                 {a.velocidad_maxima_ml_h != null && <p>Velocidad máx.: <strong>{a.velocidad_maxima_ml_h} mL/h</strong></p>}
                                 {a.concentracion_minima_mg_ml != null && <p>Conc.: <strong>{a.concentracion_minima_mg_ml}–{a.concentracion_maxima_mg_ml} mg/mL</strong></p>}
@@ -361,9 +388,12 @@ export default async function HomePage() {
                             {a.clasificacion_tisular && (
                               <Tooltip wide content={
                                 <div className="space-y-2">
-                                  <span className={`inline-block px-2 py-0.5 rounded font-medium text-[11px] ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
-                                    {tisularBadge[a.clasificacion_tisular]?.label}
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <span className={`inline-block px-2 py-0.5 rounded font-medium text-[11px] ${tisularBadge[a.clasificacion_tisular]?.bg}`}>
+                                      {tisularBadge[a.clasificacion_tisular]?.label}
+                                    </span>
+                                    <Ref ref={a.referencia} />
+                                  </div>
                                   {a.procedimiento_extravasacion
                                     ? <p className="text-gray-600 whitespace-pre-line text-[11px]">{a.procedimiento_extravasacion}</p>
                                     : <p className="text-gray-400 italic">Sin protocolo específico.</p>
@@ -392,6 +422,42 @@ export default async function HomePage() {
           </tbody>
         </table>
       </div>
+
+      {/* ── REFERENCIAS ── */}
+      {referencias && referencias.length > 0 && (
+        <div className="mt-10 border-t border-gray-200 pt-6">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Referencias</h2>
+          <ol className="space-y-2">
+            {referencias.map((r) => (
+              <li key={r.id} className="text-xs text-gray-500 flex gap-2">
+                <span className={`shrink-0 font-medium px-1.5 py-0.5 rounded text-[10px] ${
+                  r.tipo_fuente === 'ficha_tecnica'   ? 'bg-blue-50 text-blue-600' :
+                  r.tipo_fuente === 'stabilis'        ? 'bg-purple-50 text-purple-600' :
+                  r.tipo_fuente === 'consenso_grupo'  ? 'bg-green-50 text-green-700' :
+                  r.tipo_fuente === 'pubmed'          ? 'bg-orange-50 text-orange-600' :
+                  'bg-gray-100 text-gray-500'
+                }`}>
+                  {r.tipo_fuente === 'ficha_tecnica' ? 'FT' :
+                   r.tipo_fuente === 'stabilis' ? 'Stab' :
+                   r.tipo_fuente === 'consenso_grupo' ? 'SEFH/NIOSH' :
+                   r.tipo_fuente}
+                </span>
+                <span>
+                  {r.autores && <span className="text-gray-600">{r.autores}. </span>}
+                  <span className="text-gray-700">{r.titulo}</span>
+                  {r.anio && <span className="text-gray-400"> ({r.anio})</span>}
+                  {r.doi && <span className="text-gray-400"> DOI: {r.doi}</span>}
+                  {r.url && (
+                    <a href={r.url} target="_blank" rel="noopener noreferrer"
+                      className="ml-1 text-blue-500 hover:underline">↗</a>
+                  )}
+                  {r.notas && <span className="text-gray-400 italic"> — {r.notas}</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   )
 }

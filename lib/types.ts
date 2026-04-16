@@ -285,6 +285,7 @@ export type Database = {
           presentacion_comercial_id: string | null
           principio_activo_id: string
           proteccion_luz: boolean
+          referencia_id: string | null
           tipo: string
           updated_at: string
           volumen_bolsa_recomendado_ml: string | null
@@ -305,6 +306,7 @@ export type Database = {
           presentacion_comercial_id?: string | null
           principio_activo_id: string
           proteccion_luz?: boolean
+          referencia_id?: string | null
           tipo: string
           updated_at?: string
           volumen_bolsa_recomendado_ml?: string | null
@@ -325,6 +327,7 @@ export type Database = {
           presentacion_comercial_id?: string | null
           principio_activo_id?: string
           proteccion_luz?: boolean
+          referencia_id?: string | null
           tipo?: string
           updated_at?: string
           volumen_bolsa_recomendado_ml?: string | null
@@ -344,6 +347,13 @@ export type Database = {
             columns: ["principio_activo_id"]
             isOneToOne: false
             referencedRelation: "principio_activo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "condicion_preparacion_referencia_id_fkey"
+            columns: ["referencia_id"]
+            isOneToOne: false
+            referencedRelation: "referencia"
             referencedColumns: ["id"]
           },
         ]
@@ -528,6 +538,7 @@ export type Database = {
           id: string
           notas: string | null
           principio_activo_id: string
+          referencia_id: string | null
           requisitos_sala: string | null
           tipo_cabina: string | null
           updated_at: string
@@ -540,6 +551,7 @@ export type Database = {
           id?: string
           notas?: string | null
           principio_activo_id: string
+          referencia_id?: string | null
           requisitos_sala?: string | null
           tipo_cabina?: string | null
           updated_at?: string
@@ -552,6 +564,7 @@ export type Database = {
           id?: string
           notas?: string | null
           principio_activo_id?: string
+          referencia_id?: string | null
           requisitos_sala?: string | null
           tipo_cabina?: string | null
           updated_at?: string
@@ -562,6 +575,13 @@ export type Database = {
             columns: ["principio_activo_id"]
             isOneToOne: true
             referencedRelation: "principio_activo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matriz_riesgo_referencia_id_fkey"
+            columns: ["referencia_id"]
+            isOneToOne: false
+            referencedRelation: "referencia"
             referencedColumns: ["id"]
           },
         ]
