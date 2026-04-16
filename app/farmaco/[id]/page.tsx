@@ -24,6 +24,7 @@ export default async function FarmacoPage({ params }: PageProps) {
     { data: condiciones },
     { data: administraciones },
     { data: compatibilidades },
+    { data: compatDiluentes },
     { data: matrizRiesgo },
   ] = await Promise.all([
     supabase.from('principio_activo').select('*').eq('id', id).single(),
@@ -32,6 +33,7 @@ export default async function FarmacoPage({ params }: PageProps) {
     supabase.from('condicion_preparacion').select('*').eq('principio_activo_id', id),
     supabase.from('administracion').select('*').eq('principio_activo_id', id),
     supabase.from('compatibilidad_material').select('*').eq('principio_activo_id', id).order('resultado'),
+    supabase.from('compatibilidad_diluente').select('*').eq('principio_activo_id', id).order('resultado'),
     supabase.from('matriz_riesgo').select('*').eq('principio_activo_id', id).maybeSingle(),
   ])
 
@@ -62,13 +64,6 @@ export default async function FarmacoPage({ params }: PageProps) {
           </p>
         )}
       </div>
-
-      {/* Seguridad */}
-      {pa.notas_seguridad && (
-        <Section title="Seguridad" color="red">
-          <p className="text-sm text-gray-700">{pa.notas_seguridad}</p>
-        </Section>
-      )}
 
       {/* Matriz de riesgo */}
       {matrizRiesgo && (
@@ -205,6 +200,33 @@ export default async function FarmacoPage({ params }: PageProps) {
                 <div>
                   <p className="font-medium text-gray-800">{c.material}</p>
                   {c.condiciones && <p className="text-gray-500 mt-0.5">{c.condiciones}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Compatibilidad con diluyentes */}
+      {compatDiluentes && compatDiluentes.length > 0 && (
+        <Section title="Compatibilidad con diluyentes">
+          <div className="space-y-2">
+            {compatDiluentes.map((c) => (
+              <div
+                key={c.id}
+                className={`rounded-lg border px-3 py-2.5 text-xs flex items-start gap-2.5 ${
+                  c.resultado === 'compatible'   ? 'bg-green-50 border-green-200' :
+                  c.resultado === 'incompatible' ? 'bg-red-50 border-red-200' :
+                  'bg-yellow-50 border-yellow-200'
+                }`}
+              >
+                <span className="mt-0.5 shrink-0 text-sm">
+                  {c.resultado === 'compatible' ? '✓' : c.resultado === 'incompatible' ? '✗' : '~'}
+                </span>
+                <div className="space-y-0.5">
+                  <p className="font-medium text-gray-800">{c.diluente}</p>
+                  {c.condiciones && <p className="text-gray-600">{c.condiciones}</p>}
+                  {c.mecanismo && <p className="text-gray-400 italic">{c.mecanismo}</p>}
                 </div>
               </div>
             ))}

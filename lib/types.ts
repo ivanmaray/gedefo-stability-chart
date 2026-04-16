@@ -107,6 +107,57 @@ export type Database = {
         }
         Relationships: []
       }
+      compatibilidad_diluente: {
+        Row: {
+          condiciones: string | null
+          created_at: string
+          diluente: string
+          id: string
+          mecanismo: string | null
+          principio_activo_id: string
+          referencia_id: string | null
+          resultado: string
+          updated_at: string
+        }
+        Insert: {
+          condiciones?: string | null
+          created_at?: string
+          diluente: string
+          id?: string
+          mecanismo?: string | null
+          principio_activo_id: string
+          referencia_id?: string | null
+          resultado: string
+          updated_at?: string
+        }
+        Update: {
+          condiciones?: string | null
+          created_at?: string
+          diluente?: string
+          id?: string
+          mecanismo?: string | null
+          principio_activo_id?: string
+          referencia_id?: string | null
+          resultado?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compatibilidad_diluente_principio_activo_id_fkey"
+            columns: ["principio_activo_id"]
+            isOneToOne: false
+            referencedRelation: "principio_activo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compatibilidad_diluente_referencia_id_fkey"
+            columns: ["referencia_id"]
+            isOneToOne: false
+            referencedRelation: "referencia"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compatibilidad_material: {
         Row: {
           condiciones: string | null
