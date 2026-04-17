@@ -52,6 +52,7 @@ export default function ProyectoPage() {
             <li>Desarrollar una interfaz web pública tipo "Stability Chart" que presente esta información de forma compacta, visual y consultable en el punto de preparación.</li>
             <li>Establecer un flujo de gobernanza (validación por pares, trazabilidad de fuentes, versionado) que garantice la calidad y actualización de los datos.</li>
             <li>Poblar la base de datos con los principios activos del grupo ATC L01 (antineoplásicos) autorizados y comercializados en España con al menos una vía parenteral.</li>
+            <li>Diseñar la capa de interoperabilidad (API REST pública + exportaciones estandarizadas) que permita la integración con bombas de infusión inteligentes, sistemas de prescripción electrónica y software de preparación de citostáticos.</li>
             <li>Evaluar la utilidad percibida y el impacto en la práctica mediante un estudio multicéntrico en los centros participantes.</li>
           </ol>
         </section>
@@ -120,6 +121,63 @@ export default function ProyectoPage() {
           </div>
         </section>
 
+        {/* 3.4 INTEROPERABILIDAD */}
+        <section>
+          <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-1 mb-3">3.4 Interoperabilidad: bombas inteligentes, prescripción y preparación</h2>
+          <div className="space-y-3">
+            <p>
+              Uno de los valores diferenciales del proyecto es que la base de datos no es solo una herramienta de consulta, sino una <strong>fuente de datos estructurada y consumible por máquinas</strong>. Esto permite su integración directa con los sistemas que intervienen en el circuito del medicamento oncológico:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <p className="font-semibold text-gray-800 text-xs mb-1">Bombas de infusión inteligentes</p>
+                <p className="text-xs text-gray-600">
+                  Las bibliotecas de fármacos de bombas como Alaris (BD), Volumat (Fresenius) o Plum 360 (ICU Medical) requieren datos de concentración, velocidad máxima y tiempo mínimo de infusión. La API puede alimentar estas bibliotecas directamente o generar ficheros de importación en los formatos requeridos por cada fabricante.
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <p className="font-semibold text-gray-800 text-xs mb-1">Prescripción electrónica</p>
+                <p className="text-xs text-gray-600">
+                  Sistemas como Farmis, Silicon, Oncofarm o módulos oncológicos de SAP/Cerner pueden consumir la API para validar automáticamente la compatibilidad diluyente-envase, verificar concentraciones y alertar de interacciones con materiales.
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <p className="font-semibold text-gray-800 text-xs mb-1">Software de preparación</p>
+                <p className="text-xs text-gray-600">
+                  Herramientas de trazabilidad en sala blanca (Kiro, Pharmaself, etc.) pueden importar datos de estabilidad para calcular caducidades asignadas, volúmenes de reconstitución y condiciones de conservación de las preparaciones.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-3">
+              <p className="font-semibold text-gray-800 text-xs mb-2">Formatos de salida previstos</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green-400" />
+                  <span className="text-gray-600"><strong>API REST</strong> (JSON)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-400" />
+                  <span className="text-gray-600"><strong>CSV/Excel</strong> export</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span className="text-gray-600"><strong>FHIR</strong> (estándar HL7)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-400" />
+                  <span className="text-gray-600"><strong>XML/propietario</strong> por fabricante</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-2">
+              La API REST pública ya está operativa (Supabase REST). Los formatos de exportación específicos para bombas y sistemas de prescripción se desarrollarán en colaboración con los fabricantes interesados. En la reunión del Comité Coordinador de GEDEFO (abril 2026) se valoró que los proveedores de bombas podrían tener interés en la financiación complementaria del proyecto.
+            </p>
+          </div>
+        </section>
+
         {/* 4. CENTROS PARTICIPANTES */}
         <section>
           <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-1 mb-3">4. Centros participantes</h2>
@@ -172,6 +230,7 @@ export default function ProyectoPage() {
                   { label: 'Carga datos Stabilis', months: [0,1,1,0,0,0,0,0,0,0,0], color: 'bg-blue-100' },
                   { label: 'Fase 2: Validación cruzada', months: [0,0,0,1,1,1,0,0,0,0,0], color: 'bg-yellow-200' },
                   { label: 'Gobernanza y auditoría', months: [0,0,0,0,1,1,0,0,0,0,0], color: 'bg-yellow-100' },
+                  { label: 'API + exportaciones bombas/PEA', months: [0,0,1,1,1,0,0,0,0,0,0], color: 'bg-green-200' },
                   { label: 'Fase 3: Evaluación multicéntrica', months: [0,0,0,0,0,0,1,1,1,1,1], color: 'bg-purple-200' },
                   { label: 'Manuscrito Farm Hosp', months: [0,0,0,0,0,0,0,0,1,1,1], color: 'bg-purple-100' },
                 ].map(({ label, months, color }) => (
