@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import Tooltip from '@/components/Tooltip'
+import NioshBadge from '@/components/NioshBadge'
 
 export const revalidate = 0
 
@@ -262,62 +263,11 @@ export default async function HomePage() {
                     >
                       <p className="font-bold text-gray-900 capitalize text-sm">{drug.dci}</p>
                       {drug.clasificacion_niosh && matriz ? (
-                        <Tooltip wide content={
-                          <div className="space-y-2.5">
-                            {/* Cabina */}
-                            {matriz.tipo_cabina && (
-                              <div className="flex gap-2">
-                                <span className="text-base">🏭</span>
-                                <div>
-                                  <p className="font-semibold text-[11px] text-gray-500 uppercase tracking-wide">Cabina</p>
-                                  <p className="text-gray-700">{matriz.tipo_cabina}</p>
-                                </div>
-                              </div>
-                            )}
-                            {/* EPI */}
-                            {matriz.epi_requerido?.length > 0 && (
-                              <div>
-                                <p className="font-semibold text-[11px] text-gray-500 uppercase tracking-wide mb-1">EPI requerido</p>
-                                <div className="space-y-0.5">
-                                  {matriz.epi_requerido.map((e: string) => {
-                                    const ep = epiLabel[e] ?? { icon: '•', label: e.replace(/_/g, ' ') }
-                                    return (
-                                      <div key={e} className="flex items-center gap-1.5 text-gray-700">
-                                        <span>{ep.icon}</span>
-                                        <span>{ep.label}</span>
-                                      </div>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                            {/* Sala */}
-                            {matriz.requisitos_sala && (
-                              <div className="flex gap-2">
-                                <span className="text-base">🏥</span>
-                                <div>
-                                  <p className="font-semibold text-[11px] text-gray-500 uppercase tracking-wide">Sala</p>
-                                  <p className="text-gray-600 text-[11px]">{matriz.requisitos_sala}</p>
-                                </div>
-                              </div>
-                            )}
-                            {/* Residuos */}
-                            {matriz.gestion_residuos && (
-                              <div className="flex gap-2 border-t border-gray-100 pt-2">
-                                <span className="text-base">♻️</span>
-                                <div>
-                                  <p className="font-semibold text-[11px] text-gray-500 uppercase tracking-wide">Residuos</p>
-                                  <p className="text-gray-500 text-[11px]">{matriz.gestion_residuos}</p>
-                                </div>
-                              </div>
-                            )}
-                            <RefFooter source={matriz.referencia} />
-                          </div>
-                        }>
-                          <span className={`mt-1 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded cursor-pointer underline decoration-dotted ${nioshBadge[drug.clasificacion_niosh]}`}>
-                            NIOSH {drug.clasificacion_niosh.replace('_', ' ')}
-                          </span>
-                        </Tooltip>
+                        <NioshBadge
+                          clasificacion={drug.clasificacion_niosh}
+                          matriz={matriz}
+                          epiLabel={epiLabel}
+                        />
                       ) : drug.clasificacion_niosh ? (
                         <span className={`mt-1 inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${nioshBadge[drug.clasificacion_niosh]}`}>
                           NIOSH {drug.clasificacion_niosh.replace('_', ' ')}
@@ -341,6 +291,9 @@ export default async function HomePage() {
                           )}
                           {pres.temperatura_conservacion && (
                             <p>Conservación: {pres.temperatura_conservacion}</p>
+                          )}
+                          {pres.estabilidad_vial_abierto && (
+                            <p className="text-blue-700">Vial abierto: {pres.estabilidad_vial_abierto}</p>
                           )}
                           {pres.con_conservantes && (
                             <p className="text-amber-700 font-medium">
