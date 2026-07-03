@@ -83,6 +83,111 @@ export type Database = {
           },
         ]
       }
+      cima_novedad: {
+        Row: {
+          atc_code: string | null
+          barrido_atc: string | null
+          cima_datos_raw: Json | null
+          codigo_nacional: string
+          comercializado: boolean | null
+          created_at: string
+          dci: string | null
+          detectada_en: string
+          ficha_tecnica_url: string | null
+          forma_farmaceutica: string | null
+          id: string
+          laboratorio_titular: string | null
+          nombre_comercial: string | null
+          nregistro_cima: string | null
+          presentacion_creada_id: string | null
+          principio_activo_id: string | null
+          revisor_1: string | null
+          revisor_1_decision: string | null
+          revisor_1_fecha: string | null
+          revisor_1_nota: string | null
+          revisor_2: string | null
+          revisor_2_decision: string | null
+          revisor_2_fecha: string | null
+          revisor_2_nota: string | null
+          estado: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          atc_code?: string | null
+          barrido_atc?: string | null
+          cima_datos_raw?: Json | null
+          codigo_nacional: string
+          comercializado?: boolean | null
+          created_at?: string
+          dci?: string | null
+          detectada_en?: string
+          ficha_tecnica_url?: string | null
+          forma_farmaceutica?: string | null
+          id?: string
+          laboratorio_titular?: string | null
+          nombre_comercial?: string | null
+          nregistro_cima?: string | null
+          presentacion_creada_id?: string | null
+          principio_activo_id?: string | null
+          revisor_1?: string | null
+          revisor_1_decision?: string | null
+          revisor_1_fecha?: string | null
+          revisor_1_nota?: string | null
+          revisor_2?: string | null
+          revisor_2_decision?: string | null
+          revisor_2_fecha?: string | null
+          revisor_2_nota?: string | null
+          estado?: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          atc_code?: string | null
+          barrido_atc?: string | null
+          cima_datos_raw?: Json | null
+          codigo_nacional?: string
+          comercializado?: boolean | null
+          created_at?: string
+          dci?: string | null
+          detectada_en?: string
+          ficha_tecnica_url?: string | null
+          forma_farmaceutica?: string | null
+          id?: string
+          laboratorio_titular?: string | null
+          nombre_comercial?: string | null
+          nregistro_cima?: string | null
+          presentacion_creada_id?: string | null
+          principio_activo_id?: string | null
+          revisor_1?: string | null
+          revisor_1_decision?: string | null
+          revisor_1_fecha?: string | null
+          revisor_1_nota?: string | null
+          revisor_2?: string | null
+          revisor_2_decision?: string | null
+          revisor_2_fecha?: string | null
+          revisor_2_nota?: string | null
+          estado?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cima_novedad_principio_activo_id_fkey"
+            columns: ["principio_activo_id"]
+            isOneToOne: false
+            referencedRelation: "principio_activo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cima_novedad_presentacion_creada_id_fkey"
+            columns: ["presentacion_creada_id"]
+            isOneToOne: false
+            referencedRelation: "presentacion_comercial"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cima_sync_log: {
         Row: {
           codigo_nacional: string

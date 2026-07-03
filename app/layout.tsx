@@ -25,6 +25,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="hidden sm:flex items-center gap-4">
               <a href="/" className="text-[13px] text-gray-500 hover:text-gray-900 transition-colors font-medium">Stability Chart</a>
               <a href="/proyecto" className="text-[13px] text-gray-500 hover:text-gray-900 transition-colors font-medium">Proyecto</a>
+              <a href="/novedades" className="text-[13px] text-gray-500 hover:text-gray-900 transition-colors font-medium">Novedades</a>
+              <a href="/revision" className="text-[13px] text-gray-500 hover:text-gray-900 transition-colors font-medium">Revisión</a>
             </nav>
 
             {/* Aviso */}
