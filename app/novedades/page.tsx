@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/types'
+import BarridoButton from './BarridoButton'
 
 export const revalidate = 0
 
@@ -98,6 +99,13 @@ export default async function NovedadesPage() {
           doble validación (2 revisores) antes de pasar a la base de datos. Cada fila queda registrada en
           el log de auditoría.
         </p>
+        <div className="mt-4">
+          <BarridoButton />
+          <p className="mt-1 text-xs text-gray-400">
+            Cada ejecución procesa un lote de medicamentos. Si quedan por procesar, vuelve a pulsar
+            (el barrido es reanudable y no duplica).
+          </p>
+        </div>
       </header>
 
       {error && (

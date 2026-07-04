@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     const [pres, env, pas, nov] = await Promise.all([
       supabase.from('presentacion_comercial').select('nregistro_cima'),
       supabase.from('envase').select('codigo_nacional'),
-      supabase.from('principio_activo').select('id, dci'),
+      supabase.from('principio_activo').select('id, atc_code'),
       supabase.from('cima_novedad').select('codigo_nacional, nregistro_cima'),
     ])
     if (pres.error) throw pres.error
@@ -61,9 +61,9 @@ Deno.serve(async (req) => {
     for (const r of pres.data ?? []) {
       if (r.nregistro_cima) knownNreg.add(String(r.nregistro_cima))
     }
-    const paByDci = new Map<string, string>()
+    const paByAtc = new Map<string, string>()
     for (const r of pas.data ?? []) {
-      if (r.dci) paByDci.set(String(r.dci).toLowerCase().trim(), r.id)
+      if (r.atc_code) paByAtc.set(String(r.atc_code).toUpperCase(), r.id)
     }
     // CN ya encolados y nregistros ya procesados por el barrido (para no repetir)
     const queuedCn = new Set<string>()
@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
       total = page?.totalFilas ?? 0
       for (const m of page?.resultados ?? []) {
         if (m?.comerc === false) continue // solo comercializados
+        if (!isParenteral(m)) continue // solo parenterales (oral/tópico fuera)
         if (m?.nregistro) cimaNregistros.push(String(m.nregistro))
       }
       pagina++
@@ -106,10 +107,14 @@ Deno.serve(async (req) => {
       const med = await fetchJson(`${CIMA_BASE}/medicamento?nregistro=${nregistro}`)
       if (!med) continue
 
-      const dci = extractDci(med)
-      const paId = dci ? paByDci.get(dci) ?? null : null
-      const tipo = paId ? 'nueva_presentacion' : 'nuevo_principio_activo'
       const atcCode = deepestAtc(med)
+      // CIMA hace match por substring en ?atc=, colando vacunas J07*L01*, etc.:
+      // exigir que el ATC real empiece por el prefijo pedido.
+      if (!atcCode || !atcCode.startsWith(atc)) continue
+      // Emparejar por CÓDIGO ATC (robusto ante sales y variantes ortográficas del nombre).
+      const paId = paByAtc.get(atcCode) ?? null
+      const tipo = paId ? 'nueva_presentacion' : 'nuevo_principio_activo'
+      const dci = med?.principiosActivos?.[0]?.nombre ?? null
       const ftUrl = ftUrlOf(med)
 
       for (const p of med?.presentaciones ?? []) {
@@ -121,7 +126,7 @@ Deno.serve(async (req) => {
           tipo,
           codigo_nacional: cn,
           nregistro_cima: String(nregistro),
-          dci: med?.principiosActivos?.[0]?.nombre ?? dci ?? null,
+          dci,
           atc_code: atcCode,
           nombre_comercial: p?.nombre ?? med?.nombre ?? null,
           laboratorio_titular: med?.labtitular ?? null,
@@ -181,18 +186,30 @@ async function fetchJson(url: string): Promise<any | null> {
   }
 }
 
+// Alcance: SOLO parenterales (preparación de mezclas). Oral/tópico/oftálmico fuera.
+// Criterio: vía de administración de CIMA (como la migración 00041); forma como respaldo.
+const PARENTERAL_RE =
+  /INTRAVEN|SUBCUT|INTRAMUSCULAR|INTRATECAL|INTRAARTERIAL|INTRAVESICAL|INTRAVITRE|INTRAPERITON|EPIDURAL|INTRALESIONAL|PERFUS|INFUS|PARENTERAL/
+function norm(s: string | undefined | null): string {
+  return (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+}
 // deno-lint-ignore no-explicit-any
-function extractDci(med: any): string {
-  return (med?.principiosActivos?.[0]?.nombre ?? '').toLowerCase().trim()
+function isParenteral(m: any): boolean {
+  const vias = m?.viasAdministracion ?? []
+  if (Array.isArray(vias) && vias.length > 0) {
+    return vias.some((v: { nombre?: string }) => PARENTERAL_RE.test(norm(v?.nombre)))
+  }
+  return /INYECTABLE|PERFUS|INFUS|INYECCION|DISPERSION PARA SOL/.test(norm(m?.formaFarmaceutica?.nombre))
 }
 
 // deno-lint-ignore no-explicit-any
 function deepestAtc(med: any): string | null {
   const atcs = med?.atcs
   if (!Array.isArray(atcs) || atcs.length === 0) return null
-  return atcs.reduce((a: { nivel?: number }, b: { nivel?: number }) =>
+  const code = atcs.reduce((a: { nivel?: number }, b: { nivel?: number }) =>
     (b?.nivel ?? 0) >= (a?.nivel ?? 0) ? b : a
-  )?.codigo ?? null
+  )?.codigo
+  return code ? String(code).toUpperCase() : null
 }
 
 // deno-lint-ignore no-explicit-any
