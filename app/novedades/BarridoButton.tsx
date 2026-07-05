@@ -27,7 +27,7 @@ export default function BarridoButton() {
         setMsg(
           `Procesados ${data.detalle_procesados} medicamentos · ${data.novedades_nuevas} novedades nuevas ` +
           `(${data.nuevas_presentaciones} presentaciones, ${data.nuevos_principios_activos} PA nuevos) · ` +
-          `quedan ${data.quedan_por_procesar} por procesar`,
+          `${data.bajas_detectadas ?? 0} bajas detectadas · quedan ${data.quedan_por_procesar} por procesar`,
         )
         router.refresh()
       } catch (e) {

@@ -465,6 +465,9 @@ export type Database = {
       }
       envase: {
         Row: {
+          baja_detectada_en: string | null
+          baja_motivo: string | null
+          baja_pendiente: boolean
           codigo_nacional: string | null
           comercializado: boolean
           created_at: string
@@ -476,6 +479,9 @@ export type Database = {
           volumen_ml: number | null
         }
         Insert: {
+          baja_detectada_en?: string | null
+          baja_motivo?: string | null
+          baja_pendiente?: boolean
           codigo_nacional?: string | null
           comercializado?: boolean
           created_at?: string
@@ -487,6 +493,9 @@ export type Database = {
           volumen_ml?: number | null
         }
         Update: {
+          baja_detectada_en?: string | null
+          baja_motivo?: string | null
+          baja_pendiente?: boolean
           codigo_nacional?: string | null
           comercializado?: boolean
           created_at?: string

@@ -150,6 +150,40 @@ export async function confirmarNovedad(input: {
   return { ok: true, estado: 'aceptada', incorporada: r.incorporada, paCreado: r.paCreado }
 }
 
+type BajaResult = { ok: true; estado: string } | { ok: false; error: string }
+
+/** Confirmación por 1 persona de una BAJA: retirar (comercializado=false) o mantener. */
+export async function confirmarBaja(input: {
+  envaseId: string
+  decision: 'retirar' | 'mantener'
+  revisor: string
+}): Promise<BajaResult> {
+  const revisor = input.revisor.trim()
+  if (!revisor) return { ok: false, error: 'Indica tu nombre.' }
+
+  const db = admin()
+  const { data: env } = await db.from('envase').select('codigo_nacional').eq('id', input.envaseId).maybeSingle()
+  const cn = env?.codigo_nacional ?? input.envaseId
+
+  if (input.decision === 'retirar') {
+    const { error } = await db.from('envase').update({
+      comercializado: false,
+      baja_pendiente: false,
+      estado_comercializacion: 'Retirada de CIMA',
+    }).eq('id', input.envaseId)
+    if (error) return { ok: false, error: error.message }
+    await logEvento(db, cn, 'baja_detectada', { accion: 'retirada', por: revisor })
+  } else {
+    const { error } = await db.from('envase').update({ baja_pendiente: false }).eq('id', input.envaseId)
+    if (error) return { ok: false, error: error.message }
+    await logEvento(db, cn, 'baja_detectada', { accion: 'mantenida', por: revisor })
+  }
+
+  revalidatePath('/revision')
+  revalidatePath('/novedades')
+  return { ok: true, estado: input.decision === 'retirar' ? 'retirada' : 'mantenida' }
+}
+
 type BulkResult =
   | { ok: true; incorporadas: number; paCreados: number; errores: number }
   | { ok: false; error: string }

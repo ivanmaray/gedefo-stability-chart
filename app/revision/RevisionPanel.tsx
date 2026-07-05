@@ -2,12 +2,26 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { confirmarNovedad, incorporarTodas } from './actions'
+import { confirmarNovedad, incorporarTodas, confirmarBaja } from './actions'
 import type { Database } from '@/lib/types'
 
 type Novedad = Database['public']['Tables']['cima_novedad']['Row']
+export type BajaItem = {
+  envaseId: string
+  codigo_nacional: string | null
+  motivo: string | null
+  dci: string | null
+  nombre_comercial: string | null
+  atc_code: string | null
+}
 
-export default function RevisionPanel({ novedades }: { novedades: Novedad[] }) {
+const motivoLabel: Record<string, string> = {
+  retirada_cima: 'Retirada de CIMA',
+  revocada: 'Revocada',
+  no_comercializada: 'No comercializada',
+}
+
+export default function RevisionPanel({ novedades, bajas }: { novedades: Novedad[]; bajas: BajaItem[] }) {
   const [revisor, setRevisor] = useState('')
   const [msg, setMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null)
   const [pending, startTransition] = useTransition()
@@ -19,6 +33,24 @@ export default function RevisionPanel({ novedades }: { novedades: Novedad[] }) {
   }, [])
 
   const [bulkMsg, setBulkMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  const [bajaMsg, setBajaMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null)
+
+  function retirar(envaseId: string, decision: 'retirar' | 'mantener') {
+    if (!revisor.trim()) {
+      setBajaMsg({ id: envaseId, text: 'Escribe tu nombre.', ok: false })
+      return
+    }
+    localStorage.setItem('gedefo_revisor', revisor.trim())
+    setBajaMsg(null)
+    startTransition(async () => {
+      const res = await confirmarBaja({ envaseId, decision, revisor })
+      if (!res.ok) setBajaMsg({ id: envaseId, text: res.error, ok: false })
+      else {
+        setBajaMsg({ id: envaseId, text: res.estado === 'retirada' ? 'Retirada.' : 'Mantenida.', ok: true })
+        router.refresh()
+      }
+    })
+  }
 
   function actuar(id: string, decision: 'incorporar' | 'descartar') {
     if (!revisor.trim()) {
@@ -143,6 +175,57 @@ export default function RevisionPanel({ novedades }: { novedades: Novedad[] }) {
           </div>
         ))}
       </div>
+
+      {bajas.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold text-red-700 mb-1">
+            Bajas pendientes de retirar <span className="text-gray-400 font-normal">({bajas.length})</span>
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            En la base de datos pero CIMA ya no las comercializa. <strong>Retirar</strong> las marca como no
+            comercializadas (conserva el histórico). <strong>Mantener</strong> ignora el aviso.
+          </p>
+          <div className="space-y-2">
+            {bajas.map((b) => (
+              <div key={b.envaseId} className="border border-red-100 bg-red-50/40 rounded-lg p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] px-1.5 py-0.5 rounded border bg-red-100 border-red-200 text-red-700">
+                      {b.motivo ? motivoLabel[b.motivo] ?? b.motivo : 'Baja'}
+                    </span>
+                    <span className="font-medium text-gray-800 capitalize truncate">{b.dci ?? '—'}</span>
+                  </div>
+                  <div className="text-[13px] text-gray-500 truncate" title={b.nombre_comercial ?? ''}>
+                    {b.nombre_comercial ?? '—'}
+                  </div>
+                  <div className="text-[12px] text-gray-400 font-mono">CN {b.codigo_nacional} · {b.atc_code ?? '—'}</div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => retirar(b.envaseId, 'retirar')}
+                    disabled={pending}
+                    className="px-3 py-1 text-[13px] rounded border border-red-300 bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Retirar
+                  </button>
+                  <button
+                    onClick={() => retirar(b.envaseId, 'mantener')}
+                    disabled={pending}
+                    className="px-3 py-1 text-[13px] rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Mantener
+                  </button>
+                </div>
+                {bajaMsg?.id === b.envaseId && (
+                  <div className={`text-[12px] w-full sm:w-auto ${bajaMsg.ok ? 'text-green-700' : 'text-red-600'}`}>
+                    {bajaMsg.text}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

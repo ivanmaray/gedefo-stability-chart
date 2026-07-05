@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
     const atc: string = (body.atc ?? 'L01').toString().toUpperCase()
     const maxDetalle: number = Number(body.max_detalle ?? 40)
+    const maxBajas: number = Number(body.max_bajas ?? 60)
 
     // ── 1. Estado actual de la BD ──────────────────────────────────────────
     // Modelo jerárquico: presentacion_comercial = nivel nregistro; envase = nivel CN.
@@ -153,7 +154,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 5. Resumen + trazabilidad ──────────────────────────────────────────
+    // ── 5. Pasada de BAJAS: CN nuestros que CIMA ya no comercializa ─────────
+    let bajasDetectadas = 0
+    const { data: activos } = await supabase
+      .from('envase')
+      .select('id, codigo_nacional')
+      .eq('comercializado', true)
+      .eq('baja_pendiente', false)
+      .not('codigo_nacional', 'is', null)
+      .limit(maxBajas)
+    for (const e of activos ?? []) {
+      const cn = e.codigo_nacional
+      if (!cn) continue
+      await sleep(DELAY_MS)
+      const pres = await fetchJson(`${CIMA_BASE}/presentaciones?cn=${encodeURIComponent(cn)}`)
+      let motivo: string | null = null
+      if (!pres || (pres.totalFilas ?? 0) === 0) motivo = 'retirada_cima'
+      else {
+        const p = pres.resultados?.[0]
+        if (p?.estado?.rev) motivo = 'revocada'
+        else if (p?.comerc === false) motivo = 'no_comercializada'
+      }
+      if (!motivo) continue
+      await supabase.from('envase')
+        .update({ baja_pendiente: true, baja_motivo: motivo, baja_detectada_en: new Date().toISOString() })
+        .eq('id', e.id)
+      await logSync(supabase, cn, 'baja_detectada', { motivo })
+      bajasDetectadas++
+    }
+
+    // ── 6. Resumen + trazabilidad ──────────────────────────────────────────
     const resumen = {
       atc,
       medicamentos_cima: cimaNregistros.length,
@@ -163,6 +193,7 @@ Deno.serve(async (req) => {
       nuevas_presentaciones: nuevasPresentaciones,
       nuevos_principios_activos: nuevosPrincipios,
       quedan_por_procesar: Math.max(0, nuevos.length - Math.min(nuevos.length, maxDetalle)),
+      bajas_detectadas: bajasDetectadas,
     }
     await logSync(supabase, `atc:${atc}`, 'barrido_ok', resumen)
 
