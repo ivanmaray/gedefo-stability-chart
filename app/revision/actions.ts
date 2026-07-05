@@ -4,13 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import type { Database, Json } from '@/lib/types'
 
-type NovedadUpdate = Database['public']['Tables']['cima_novedad']['Update']
+type Novedad = Database['public']['Tables']['cima_novedad']['Row']
 
-async function logEvento(db: ReturnType<typeof admin>, cn: string, tipo: string, detalle: Json) {
-  await db.from('cima_sync_log').insert({ codigo_nacional: cn, tipo_evento: tipo, detalle })
-}
-
-// Cliente con service role: las escrituras de gobernanza van server-side.
+// Cliente con service role: las escrituras van server-side.
 function admin() {
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,120 +14,172 @@ function admin() {
   )
 }
 
-type VotoResult =
-  | { ok: true; estado: string; promovida: boolean }
-  | { ok: false; error: string }
+async function logEvento(db: ReturnType<typeof admin>, cn: string, tipo: string, detalle: Json) {
+  await db.from('cima_sync_log').insert({ codigo_nacional: cn, tipo_evento: tipo, detalle })
+}
+
+// Sales frecuentes a quitar del nombre para dejar la DCI base.
+const SALT_RE =
+  /\b(hidrocloruro|clorhidrato|dihidrocloruro|bromhidrato|sulfato|acetato|fosfato|difosfato|sodico|disodico|mesilato|besilato|tartrato|maleato|succinato|citrato|lactato|pamoato|tosilato|fumarato|gluconato|estearato|palmitato)\b/gi
+
+function normalizeDci(dci: string | null): string | null {
+  if (!dci) return null
+  const limpio = dci.toLowerCase().replace(SALT_RE, '').replace(/\s+/g, ' ').trim()
+  return limpio || dci.toLowerCase().trim()
+}
 
 /**
- * Registra el voto de un revisor sobre una novedad (DOBLE VALIDACIÓN).
- * - Cada novedad necesita DOS revisores distintos.
- * - Solo se acepta (e incorpora a producción) si AMBOS dicen "incluir".
- * - Si alguno dice "descartar", la novedad se rechaza.
- * Al aceptar una `nueva_presentacion` de un PA existente, se crea la fila en
- * `presentacion_comercial`. Un `nuevo_principio_activo` se marca aceptado pero
- * requiere alta manual de la ficha (no se autocrea).
+ * Núcleo: incorpora UNA novedad a producción (fase inicial, sin revisión de campos).
+ * Crea el principio_activo si es nuevo (nombre CIMA normalizado + ATC), reutiliza/crea
+ * la presentación (nregistro) y añade el envase (CN).
  */
-export async function votarNovedad(input: {
+async function incorporarUna(
+  db: ReturnType<typeof admin>,
+  n: Novedad,
+  revisor: string,
+  now: string,
+): Promise<{ incorporada: boolean; paCreado: boolean; error?: string }> {
+  // 1. Principio activo: reutilizar por ATC o crear nuevo.
+  let paId = n.principio_activo_id
+  let paCreado = false
+  if (!paId) {
+    if (!n.atc_code) return { incorporada: false, paCreado: false, error: 'Sin ATC; no puedo crear el principio activo.' }
+    const { data: existente } = await db.from('principio_activo').select('id').eq('atc_code', n.atc_code).maybeSingle()
+    if (existente) {
+      paId = existente.id
+    } else {
+      const { data: nuevoPa, error: paErr } = await db
+        .from('principio_activo')
+        .insert({ dci: normalizeDci(n.dci) ?? n.codigo_nacional, atc_code: n.atc_code })
+        .select('id')
+        .maybeSingle()
+      if (paErr || !nuevoPa) return { incorporada: false, paCreado: false, error: `PA: ${paErr?.message ?? 'error'}` }
+      paId = nuevoPa.id
+      paCreado = true
+    }
+  }
+
+  // 2. Presentación (nivel nregistro): reutilizar o crear.
+  let presentacionId: string | null = null
+  if (n.nregistro_cima) {
+    const { data } = await db.from('presentacion_comercial').select('id').eq('nregistro_cima', n.nregistro_cima).maybeSingle()
+    presentacionId = data?.id ?? null
+  }
+  if (!presentacionId) {
+    const { data: nueva, error: presErr } = await db
+      .from('presentacion_comercial')
+      .insert({
+        principio_activo_id: paId,
+        nregistro_cima: n.nregistro_cima,
+        nombre_comercial: n.nombre_comercial ?? 'Sin nombre',
+        laboratorio_titular: n.laboratorio_titular,
+        forma_farmaceutica: n.forma_farmaceutica,
+        ficha_tecnica_url: n.ficha_tecnica_url,
+        cima_datos_raw: n.cima_datos_raw,
+        cima_last_sync: now,
+      })
+      .select('id')
+      .maybeSingle()
+    if (presErr || !nueva) return { incorporada: false, paCreado, error: `Presentación: ${presErr?.message ?? 'error'}` }
+    presentacionId = nueva.id
+  }
+
+  // 3. Envase (nivel CN).
+  const { error: envErr } = await db.from('envase').insert({
+    presentacion_id: presentacionId,
+    codigo_nacional: n.codigo_nacional,
+    comercializado: n.comercializado ?? true,
+  })
+  const incorporada = !envErr || /duplicate|unique/i.test(envErr.message)
+
+  await db.from('cima_novedad').update({
+    estado: 'aceptada',
+    revisor_1: revisor,
+    revisor_1_decision: 'incluir',
+    revisor_1_fecha: now,
+    presentacion_creada_id: presentacionId,
+  }).eq('id', n.id)
+
+  await logEvento(db, n.codigo_nacional, 'nueva_presentacion', {
+    via: 'confirmacion',
+    por: revisor,
+    pa_creado: paCreado,
+    error: envErr?.message ?? null,
+  })
+
+  return { incorporada, paCreado }
+}
+
+type Result =
+  | { ok: true; estado: string; incorporada: boolean; paCreado: boolean }
+  | { ok: false; error: string }
+
+/** Confirmación por 1 persona de una novedad: incorporar directo o descartar. */
+export async function confirmarNovedad(input: {
   id: string
-  decision: 'incluir' | 'descartar'
+  decision: 'incorporar' | 'descartar'
   revisor: string
-}): Promise<VotoResult> {
+}): Promise<Result> {
   const revisor = input.revisor.trim()
-  if (!revisor) return { ok: false, error: 'Indica tu nombre como revisor.' }
+  if (!revisor) return { ok: false, error: 'Indica tu nombre.' }
 
   const db = admin()
-
-  const { data: n, error } = await db
-    .from('cima_novedad')
-    .select('*')
-    .eq('id', input.id)
-    .maybeSingle()
-
+  const { data: n, error } = await db.from('cima_novedad').select('*').eq('id', input.id).maybeSingle()
   if (error || !n) return { ok: false, error: 'Novedad no encontrada.' }
-  if (n.estado === 'aceptada' || n.estado === 'rechazada') {
-    return { ok: false, error: `Ya resuelta (${n.estado}).` }
-  }
+  if (n.estado === 'aceptada' || n.estado === 'rechazada') return { ok: false, error: `Ya resuelta (${n.estado}).` }
 
   const now = new Date().toISOString()
-  const patch: NovedadUpdate = {}
 
-  if (!n.revisor_1) {
-    patch.revisor_1 = revisor
-    patch.revisor_1_decision = input.decision
-    patch.revisor_1_fecha = now
-    patch.estado = 'en_revision'
-  } else if (n.revisor_1 === revisor) {
-    return { ok: false, error: 'Ya votaste como revisor 1. Hacen falta DOS revisores distintos.' }
-  } else if (!n.revisor_2) {
-    patch.revisor_2 = revisor
-    patch.revisor_2_decision = input.decision
-    patch.revisor_2_fecha = now
-  } else {
-    return { ok: false, error: 'Ya hay dos revisores registrados.' }
+  if (input.decision === 'descartar') {
+    await db.from('cima_novedad').update({
+      estado: 'rechazada',
+      revisor_1: revisor,
+      revisor_1_decision: 'descartar',
+      revisor_1_fecha: now,
+    }).eq('id', n.id)
+    await logEvento(db, n.codigo_nacional, 'novedad_detectada', { accion: 'descartada', por: revisor })
+    revalidatePath('/revision')
+    revalidatePath('/novedades')
+    return { ok: true, estado: 'rechazada', incorporada: false, paCreado: false }
   }
 
-  // ¿Se cierra la doble validación?
-  const d1 = patch.revisor_1_decision ?? n.revisor_1_decision
-  const d2 = patch.revisor_2_decision ?? n.revisor_2_decision
-  if (d1 && d2) {
-    patch.estado = d1 === 'incluir' && d2 === 'incluir' ? 'aceptada' : 'rechazada'
-  }
+  const r = await incorporarUna(db, n, revisor, now)
+  if (r.error) return { ok: false, error: r.error }
+  revalidatePath('/revision')
+  revalidatePath('/novedades')
+  return { ok: true, estado: 'aceptada', incorporada: r.incorporada, paCreado: r.paCreado }
+}
 
-  const { error: upErr } = await db.from('cima_novedad').update(patch).eq('id', n.id)
-  if (upErr) return { ok: false, error: upErr.message }
+type BulkResult =
+  | { ok: true; incorporadas: number; paCreados: number; errores: number }
+  | { ok: false; error: string }
 
-  // Promoción a producción (modelo jerárquico: presentacion_comercial=nregistro, envase=CN)
-  let promovida = false
-  if (patch.estado === 'aceptada' && n.tipo === 'nueva_presentacion' && n.principio_activo_id) {
-    // 1. Presentación (nivel nregistro): reutilizar si ya existe, si no crearla.
-    let presentacionId: string | null = null
-    if (n.nregistro_cima) {
-      const { data: existente } = await db
-        .from('presentacion_comercial')
-        .select('id')
-        .eq('nregistro_cima', n.nregistro_cima)
-        .maybeSingle()
-      presentacionId = existente?.id ?? null
-    }
-    if (!presentacionId) {
-      const { data: nueva, error: presErr } = await db
-        .from('presentacion_comercial')
-        .insert({
-          principio_activo_id: n.principio_activo_id,
-          nregistro_cima: n.nregistro_cima,
-          nombre_comercial: n.nombre_comercial ?? 'Sin nombre',
-          laboratorio_titular: n.laboratorio_titular,
-          forma_farmaceutica: n.forma_farmaceutica,
-          ficha_tecnica_url: n.ficha_tecnica_url,
-          cima_datos_raw: n.cima_datos_raw,
-          cima_last_sync: now,
-        })
-        .select('id')
-        .maybeSingle()
-      if (presErr) await logEvento(db, n.codigo_nacional, 'error', { fase: 'crear_presentacion', message: presErr.message })
-      presentacionId = nueva?.id ?? null
-    }
+/** Incorpora en bloque todas las novedades pendientes (confirmación en bloque de 1 persona). */
+export async function incorporarTodas(input: { revisor: string }): Promise<BulkResult> {
+  const revisor = input.revisor.trim()
+  if (!revisor) return { ok: false, error: 'Indica tu nombre.' }
 
-    // 2. Envase (nivel CN) bajo esa presentación.
-    if (presentacionId) {
-      const { error: envErr } = await db.from('envase').insert({
-        presentacion_id: presentacionId,
-        codigo_nacional: n.codigo_nacional,
-        comercializado: n.comercializado ?? true,
-      })
-      if (!envErr) {
-        await db.from('cima_novedad').update({ presentacion_creada_id: presentacionId }).eq('id', n.id)
-        promovida = true
-      }
-      await logEvento(db, n.codigo_nacional, 'nueva_presentacion', {
-        via: 'revision',
-        promovida,
-        error: envErr?.message ?? null,
-      })
+  const db = admin()
+  const { data: pendientes, error } = await db
+    .from('cima_novedad')
+    .select('*')
+    .in('estado', ['pendiente', 'en_revision'])
+  if (error) return { ok: false, error: error.message }
+
+  const now = new Date().toISOString()
+  let incorporadas = 0
+  let paCreados = 0
+  let errores = 0
+  for (const n of pendientes ?? []) {
+    const r = await incorporarUna(db, n, revisor, now)
+    if (r.error) errores++
+    else {
+      incorporadas++
+      if (r.paCreado) paCreados++
     }
   }
 
   revalidatePath('/revision')
   revalidatePath('/novedades')
-  return { ok: true, estado: patch.estado ?? 'en_revision', promovida }
+  return { ok: true, incorporadas, paCreados, errores }
 }

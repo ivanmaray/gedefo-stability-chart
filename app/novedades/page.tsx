@@ -95,9 +95,9 @@ export default async function NovedadesPage() {
       <header className="mb-6">
         <h1 className="text-xl font-semibold text-gray-900">Novedades CIMA pendientes de valorar</h1>
         <p className="mt-1 text-sm text-gray-500 max-w-3xl">
-          Detectadas por el barrido de CIMA (ATC L01). <strong>No están incorporadas</strong>: requieren
-          doble validación (2 revisores) antes de pasar a la base de datos. Cada fila queda registrada en
-          el log de auditoría.
+          Detectadas por el barrido de CIMA (ATC L01). <strong>No están incorporadas</strong>: pasan a la
+          base de datos cuando <strong>1 persona las confirma</strong> en la pestaña Revisión. Cada fila
+          queda registrada en el log de auditoría.
         </p>
         <div className="mt-4">
           <BarridoButton />

@@ -18,12 +18,13 @@ export default async function RevisionPage() {
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <header className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Revisión de novedades CIMA</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Confirmar novedades CIMA</h1>
         <p className="mt-1 text-sm text-gray-500 max-w-3xl">
-          Doble validación: cada novedad necesita el visto bueno de <strong>2 revisores distintos</strong>.
-          Si ambos marcan <strong>Incluir</strong>, se incorpora a la base de datos (las presentaciones nuevas
-          se crean automáticamente; un principio activo nuevo se marca aceptado para alta manual de ficha).
-          Si alguno marca <strong>Descartar</strong>, se rechaza. Todo queda en el log de auditoría.
+          Fase inicial: con la confirmación de <strong>1 persona</strong>, la novedad se
+          <strong> incorpora directamente</strong> a la base de datos (se crea la presentación y su envase;
+          si el principio activo es nuevo, se crea automáticamente con su ATC). Los campos clínicos
+          (estabilidad, preparación) se rellenan y validan después. <strong>Descartar</strong> la rechaza.
+          Todo queda en el log de auditoría.
         </p>
       </header>
 
