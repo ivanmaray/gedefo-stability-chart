@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { confirmarNovedad, incorporarTodas, confirmarBaja } from './actions'
+import { confirmarNovedad, incorporarTodas, confirmarBaja, retirarTodasBajas } from './actions'
 import type { Database } from '@/lib/types'
 
 type Novedad = Database['public']['Tables']['cima_novedad']['Row']
@@ -34,6 +34,25 @@ export default function RevisionPanel({ novedades, bajas }: { novedades: Novedad
 
   const [bulkMsg, setBulkMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [bajaMsg, setBajaMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null)
+  const [bajaBulkMsg, setBajaBulkMsg] = useState<{ text: string; ok: boolean } | null>(null)
+
+  function retirarBloque() {
+    if (!revisor.trim()) {
+      setBajaBulkMsg({ text: 'Escribe tu nombre antes de retirar.', ok: false })
+      return
+    }
+    if (!confirm(`¿Retirar las ${bajas.length} bajas? Se marcarán como no comercializadas (conserva histórico).`)) return
+    localStorage.setItem('gedefo_revisor', revisor.trim())
+    setBajaBulkMsg(null)
+    startTransition(async () => {
+      const res = await retirarTodasBajas({ revisor })
+      if (!res.ok) setBajaBulkMsg({ text: res.error, ok: false })
+      else {
+        setBajaBulkMsg({ text: `Retiradas ${res.retiradas}.`, ok: true })
+        router.refresh()
+      }
+    })
+  }
 
   function retirar(envaseId: string, decision: 'retirar' | 'mantener') {
     if (!revisor.trim()) {
@@ -185,6 +204,16 @@ export default function RevisionPanel({ novedades, bajas }: { novedades: Novedad
             En la base de datos pero CIMA ya no las comercializa. <strong>Retirar</strong> las marca como no
             comercializadas (conserva el histórico). <strong>Mantener</strong> ignora el aviso.
           </p>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <button
+              onClick={retirarBloque}
+              disabled={pending}
+              className="px-3 py-1.5 text-sm rounded-md border border-red-300 bg-red-100 text-red-800 hover:bg-red-200 font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {pending ? 'Retirando…' : `Retirar todas (${bajas.length})`}
+            </button>
+            {bajaBulkMsg && <span className={`text-[13px] ${bajaBulkMsg.ok ? 'text-green-700' : 'text-red-600'}`}>{bajaBulkMsg.text}</span>}
+          </div>
           <div className="space-y-2">
             {bajas.map((b) => (
               <div key={b.envaseId} className="border border-red-100 bg-red-50/40 rounded-lg p-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

@@ -184,6 +184,35 @@ export async function confirmarBaja(input: {
   return { ok: true, estado: input.decision === 'retirar' ? 'retirada' : 'mantenida' }
 }
 
+type BajaBulkResult = { ok: true; retiradas: number } | { ok: false; error: string }
+
+/** Retira en bloque todas las bajas pendientes (comercializado=false, conserva histórico). */
+export async function retirarTodasBajas(input: { revisor: string }): Promise<BajaBulkResult> {
+  const revisor = input.revisor.trim()
+  if (!revisor) return { ok: false, error: 'Indica tu nombre.' }
+
+  const db = admin()
+  const { data: pend, error } = await db.from('envase').select('id, codigo_nacional').eq('baja_pendiente', true)
+  if (error) return { ok: false, error: error.message }
+
+  let retiradas = 0
+  for (const e of pend ?? []) {
+    const { error: upErr } = await db.from('envase').update({
+      comercializado: false,
+      baja_pendiente: false,
+      estado_comercializacion: 'Retirada de CIMA',
+    }).eq('id', e.id)
+    if (!upErr) {
+      retiradas++
+      await logEvento(db, e.codigo_nacional ?? e.id, 'baja_detectada', { accion: 'retirada', por: revisor, bulk: true })
+    }
+  }
+
+  revalidatePath('/revision')
+  revalidatePath('/novedades')
+  return { ok: true, retiradas }
+}
+
 type BulkResult =
   | { ok: true; incorporadas: number; paCreados: number; errores: number }
   | { ok: false; error: string }
