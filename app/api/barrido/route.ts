@@ -79,7 +79,6 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}))
     const atc: string = (body?.atc ?? 'L01').toString().toUpperCase()
     const maxDetalle: number = Number(body?.max_detalle ?? 25)
-    const maxBajas: number = Number(body?.max_bajas ?? 40)
 
     // 1. Estado actual (modelo jerárquico: presentacion=nregistro, envase=CN)
     const [pres, env, pas, nov] = await Promise.all([
@@ -180,37 +179,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // 5. Pasada de BAJAS: CN nuestros que CIMA ya no comercializa.
-    let bajasDetectadas = 0
-    const { data: activos } = await supabase
-      .from('envase')
-      .select('id, codigo_nacional')
-      .eq('comercializado', true)
-      .eq('baja_pendiente', false)
-      .not('codigo_nacional', 'is', null)
-      .limit(maxBajas)
-    for (const e of activos ?? []) {
-      const cn = e.codigo_nacional
-      if (!cn) continue
-      await sleep(DELAY_MS)
-      const pres = (await fetchJson(`${CIMA_BASE}/presentaciones?cn=${encodeURIComponent(cn)}`)) as
-        | { totalFilas?: number; resultados?: { comerc?: boolean; estado?: { rev?: number } }[] }
-        | null
-      let motivo: string | null = null
-      if (!pres || (pres.totalFilas ?? 0) === 0) motivo = 'retirada_cima'
-      else {
-        const p = pres.resultados?.[0]
-        if (p?.estado?.rev) motivo = 'revocada'
-        else if (p?.comerc === false) motivo = 'no_comercializada'
-      }
-      if (!motivo) continue
-      await supabase.from('envase')
-        .update({ baja_pendiente: true, baja_motivo: motivo, baja_detectada_en: new Date().toISOString() })
-        .eq('id', e.id)
-      await supabase.from('cima_sync_log').insert({ codigo_nacional: cn, tipo_evento: 'baja_detectada', detalle: { motivo } })
-      bajasDetectadas++
-    }
-
     const resumen = {
       ok: true,
       atc,
@@ -220,7 +188,6 @@ export async function POST(req: Request) {
       nuevas_presentaciones: nuevasPresentaciones,
       nuevos_principios_activos: nuevosPrincipios,
       quedan_por_procesar: Math.max(0, nuevos.length - Math.min(nuevos.length, maxDetalle)),
-      bajas_detectadas: bajasDetectadas,
     }
     await supabase.from('cima_sync_log').insert({
       codigo_nacional: `atc:${atc}`,

@@ -468,6 +468,7 @@ export type Database = {
           baja_detectada_en: string | null
           baja_motivo: string | null
           baja_pendiente: boolean
+          cima_revisado_en: string | null
           codigo_nacional: string | null
           comercializado: boolean
           created_at: string
@@ -475,6 +476,9 @@ export type Database = {
           id: string
           presentacion_id: string
           problema_suministro: boolean
+          psum_fecha_fin: string | null
+          psum_fecha_inicio: string | null
+          psum_observaciones: string | null
           updated_at: string
           volumen_ml: number | null
         }
@@ -482,6 +486,7 @@ export type Database = {
           baja_detectada_en?: string | null
           baja_motivo?: string | null
           baja_pendiente?: boolean
+          cima_revisado_en?: string | null
           codigo_nacional?: string | null
           comercializado?: boolean
           created_at?: string
@@ -496,6 +501,7 @@ export type Database = {
           baja_detectada_en?: string | null
           baja_motivo?: string | null
           baja_pendiente?: boolean
+          cima_revisado_en?: string | null
           codigo_nacional?: string | null
           comercializado?: boolean
           created_at?: string
@@ -503,6 +509,9 @@ export type Database = {
           id?: string
           presentacion_id?: string
           problema_suministro?: boolean
+          psum_fecha_fin?: string | null
+          psum_fecha_inicio?: string | null
+          psum_observaciones?: string | null
           updated_at?: string
           volumen_ml?: number | null
         }

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function BarridoButton() {
+export default function ActualizarButton() {
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -14,20 +14,19 @@ export default function BarridoButton() {
     setMsg(null)
     startTransition(async () => {
       try {
-        const res = await fetch('/api/barrido', {
+        const res = await fetch('/api/actualizar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ atc: 'L01' }),
+          body: JSON.stringify({}),
         })
         const data = await res.json()
         if (!res.ok || !data.ok) {
-          setErr(data.error ?? 'Error en el barrido')
+          setErr(data.error ?? 'Error al actualizar')
           return
         }
         setMsg(
-          `Procesados ${data.detalle_procesados} medicamentos · ${data.novedades_nuevas} novedades nuevas ` +
-          `(${data.nuevas_presentaciones} presentaciones, ${data.nuevos_principios_activos} PA nuevos) · ` +
-          `quedan ${data.quedan_por_procesar} por procesar`,
+          `Suministro: +${data.suministro_marcados} con problema, −${data.suministro_resueltos} resueltos · ` +
+          `bajas nuevas: ${data.bajas_nuevas} (revisados ${data.envases_revisados_bajas})`,
         )
         router.refresh()
       } catch (e) {
@@ -41,12 +40,12 @@ export default function BarridoButton() {
       <button
         onClick={run}
         disabled={pending}
-        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 disabled:opacity-60 disabled:cursor-not-allowed w-fit"
+        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:opacity-60 disabled:cursor-not-allowed w-fit"
       >
         {pending && (
-          <span className="inline-block w-3.5 h-3.5 border-2 border-sky-300 border-t-sky-600 rounded-full animate-spin" />
+          <span className="inline-block w-3.5 h-3.5 border-2 border-amber-300 border-t-amber-700 rounded-full animate-spin" />
         )}
-        {pending ? 'Barriendo CIMA…' : 'Ejecutar barrido (L01)'}
+        {pending ? 'Actualizando…' : 'Actualizar existentes (suministro + bajas)'}
       </button>
       {msg && <span className="text-[13px] text-green-700">{msg}</span>}
       {err && <span className="text-[13px] text-red-600">Error: {err}</span>}

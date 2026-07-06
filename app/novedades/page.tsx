@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/types'
 import BarridoButton from './BarridoButton'
+import ActualizarButton from './ActualizarButton'
 
 export const revalidate = 0
 
@@ -90,12 +91,21 @@ export default async function NovedadesPage() {
           base de datos cuando <strong>1 persona las confirma</strong> en la pestaña Revisión. Cada fila
           queda registrada en el log de auditoría.
         </p>
-        <div className="mt-4">
-          <BarridoButton />
-          <p className="mt-1 text-xs text-gray-400">
-            Cada ejecución procesa un lote de medicamentos. Si quedan por procesar, vuelve a pulsar
-            (el barrido es reanudable y no duplica).
-          </p>
+        <div className="mt-4 space-y-4">
+          <div>
+            <BarridoButton />
+            <p className="mt-1 text-xs text-gray-400">
+              <strong>Altas:</strong> descubre presentaciones nuevas de CIMA. Cada ejecución procesa un lote;
+              si quedan por procesar, vuelve a pulsar (reanudable, no duplica).
+            </p>
+          </div>
+          <div>
+            <ActualizarButton />
+            <p className="mt-1 text-xs text-gray-400">
+              <strong>Existentes:</strong> sincroniza la info de lo que ya tienes — problema de suministro
+              (todo el catálogo) y bajas (por lotes que ciclan). No añade presentaciones nuevas.
+            </p>
+          </div>
         </div>
       </header>
 
