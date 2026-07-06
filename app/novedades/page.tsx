@@ -11,11 +11,6 @@ function fmtFecha(iso: string | null): string {
   return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-// Doble validación: cuántos revisores han dicho "incluir" (de 2)
-function votosIncluir(n: Novedad): number {
-  return (n.revisor_1_decision === 'incluir' ? 1 : 0) + (n.revisor_2_decision === 'incluir' ? 1 : 0)
-}
-
 const estadoBadge: Record<string, string> = {
   pendiente:   'bg-amber-50 border-amber-200 text-amber-700',
   en_revision: 'bg-sky-50 border-sky-200 text-sky-700',
@@ -39,7 +34,6 @@ function TablaNovedades({ filas }: { filas: Novedad[] }) {
             <th className="px-3 py-2 font-medium">Laboratorio</th>
             <th className="px-3 py-2 font-medium">ATC</th>
             <th className="px-3 py-2 font-medium">Detectada</th>
-            <th className="px-3 py-2 font-medium">Validación (2)</th>
             <th className="px-3 py-2 font-medium">Estado</th>
             <th className="px-3 py-2 font-medium">FT</th>
           </tr>
@@ -58,9 +52,6 @@ function TablaNovedades({ filas }: { filas: Novedad[] }) {
               </td>
               <td className="px-3 py-2 font-mono text-gray-400">{n.atc_code ?? '—'}</td>
               <td className="px-3 py-2 text-gray-500">{fmtFecha(n.detectada_en)}</td>
-              <td className="px-3 py-2">
-                <span className="font-mono text-gray-600">{votosIncluir(n)}/2</span>
-              </td>
               <td className="px-3 py-2">
                 <span className={`inline-block px-2 py-0.5 rounded border text-[11px] ${estadoBadge[n.estado] ?? 'bg-gray-50 border-gray-200 text-gray-500'}`}>
                   {n.estado}
