@@ -1,52 +1,72 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function ActualizarButton() {
-  const [pending, startTransition] = useTransition()
+  const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const router = useRouter()
 
-  function run() {
+  async function run() {
     setErr(null)
     setMsg(null)
-    startTransition(async () => {
-      try {
+    setProgress('Sincronizando suministro…')
+    setRunning(true)
+    const desde = new Date().toISOString()
+    let suministro = true
+    let sm = 0, sr = 0, bajas = 0, revisados = 0
+    try {
+      for (let i = 0; i < 25; i++) {
         const res = await fetch('/api/actualizar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ desde, suministro, max_bajas: 80 }),
         })
-        const data = await res.json()
-        if (!res.ok || !data.ok) {
-          setErr(data.error ?? 'Error al actualizar')
-          return
+        const d = await res.json()
+        if (!res.ok || !d.ok) {
+          setErr(d.error ?? 'Error al actualizar')
+          break
         }
-        setMsg(
-          `Suministro: +${data.suministro_marcados} con problema, −${data.suministro_resueltos} resueltos · ` +
-          `bajas nuevas: ${data.bajas_nuevas} (revisados ${data.envases_revisados_bajas})`,
-        )
-        router.refresh()
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : 'Error de red')
+        if (suministro) {
+          sm = d.suministro_marcados
+          sr = d.suministro_resueltos
+        }
+        suministro = false
+        bajas += d.bajas_nuevas
+        revisados += d.revisados_lote
+        if (d.bajas_pendientes > 0 && d.revisados_lote > 0) {
+          setProgress(`Revisando bajas… ${revisados}/${revisados + d.bajas_pendientes}`)
+        } else {
+          setProgress(null)
+          setMsg(`Listo. Suministro: +${sm} con problema, −${sr} resueltos · bajas nuevas: ${bajas} · ${revisados} revisados`)
+          break
+        }
       }
-    })
+      router.refresh()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Error de red')
+    } finally {
+      setRunning(false)
+      setProgress(null)
+    }
   }
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <button
         onClick={run}
-        disabled={pending}
+        disabled={running}
         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 disabled:opacity-60 disabled:cursor-not-allowed w-fit"
       >
-        {pending && (
+        {running && (
           <span className="inline-block w-3.5 h-3.5 border-2 border-amber-300 border-t-amber-700 rounded-full animate-spin" />
         )}
-        {pending ? 'Actualizando…' : 'Actualizar existentes (suministro + bajas)'}
+        {running ? 'Actualizando…' : 'Actualizar existentes (suministro + bajas)'}
       </button>
+      {progress && <span className="text-[13px] text-amber-700">{progress}</span>}
       {msg && <span className="text-[13px] text-green-700">{msg}</span>}
       {err && <span className="text-[13px] text-red-600">Error: {err}</span>}
     </div>

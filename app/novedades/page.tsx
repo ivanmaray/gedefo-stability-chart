@@ -103,7 +103,8 @@ export default async function NovedadesPage() {
             <ActualizarButton />
             <p className="mt-1 text-xs text-gray-400">
               <strong>Existentes:</strong> sincroniza la info de lo que ya tienes — problema de suministro
-              (todo el catálogo) y bajas (por lotes que ciclan). No añade presentaciones nuevas.
+              y bajas. Un solo clic recorre <strong>todo el catálogo</strong> (tarda unos minutos; mantén la
+              pestaña abierta). No añade presentaciones nuevas.
             </p>
           </div>
         </div>

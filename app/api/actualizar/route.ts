@@ -5,9 +5,11 @@ import type { Database } from '@/lib/types'
 // ACTUALIZAR EXISTENTES: sincroniza la info de las presentaciones que YA tenemos
 // con CIMA (distinto del barrido, que descubre presentaciones nuevas).
 //   Fase A — problema de suministro: lista completa de CIMA (/psuministro) cruzada
-//            con nuestros CN. Cubre todo el catálogo de una vez.
-//   Fase B — bajas: por CN (/presentaciones?cn=), por lotes que ciclan con
-//            cima_revisado_en para recorrer todo el catálogo en varias ejecuciones.
+//            con nuestros CN. Cubre todo el catálogo de una vez. Solo en la 1ª
+//            llamada de una vuelta (suministro=true).
+//   Fase B — bajas: por CN (/presentaciones?cn=), en lotes. El cliente pasa `desde`
+//            (inicio de la vuelta) y encadena llamadas hasta bajas_pendientes=0,
+//            así una sola pulsación recorre todo el catálogo.
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
@@ -39,61 +41,63 @@ export async function POST(req: Request) {
     const supabase = createClient<Database>(url, key)
 
     const body = await req.json().catch(() => ({}))
-    const maxBajas: number = Number(body?.max_bajas ?? 60)
+    const maxBajas: number = Number(body?.max_bajas ?? 80)
+    // Inicio de la vuelta: solo se revisan envases no tocados desde este instante.
+    const desde: string = body?.desde ?? new Date().toISOString()
+    const conSuministro: boolean = body?.suministro !== false
+    // Filtro de "pendientes en esta vuelta": nunca revisados o revisados antes de `desde`.
+    const pendienteFilter = `cima_revisado_en.is.null,cima_revisado_en.lt.${desde}`
 
-    // ── FASE A: problema de suministro (lista completa de CIMA) ─────────────
-    const shortage = new Map<string, { observ: string | null; fini: string | null; ffin: string | null }>()
-    let pagina = 1
-    let total = Infinity
-    while ((pagina - 1) * PAGE_SIZE < total && pagina <= 10) {
-      await sleep(DELAY_MS)
-      const page = (await fetchJson(`${CIMA_BASE}/psuministro?pagina=${pagina}`)) as PsumLista | null
-      total = page?.totalFilas ?? 0
-      for (const p of page?.resultados ?? []) {
-        if (p?.cn && p.activo !== false) {
-          shortage.set(String(p.cn), { observ: p.observ ?? null, fini: toDate(p.fini), ffin: toDate(p.ffin) })
-        }
-      }
-      pagina++
-    }
-
-    const { data: envs } = await supabase
-      .from('envase')
-      .select('id, codigo_nacional, problema_suministro')
-      .not('codigo_nacional', 'is', null)
-
+    // ── FASE A: problema de suministro (solo en la 1ª llamada de la vuelta) ──
     let suministroMarcados = 0
     let suministroResueltos = 0
-    for (const e of envs ?? []) {
-      const cn = String(e.codigo_nacional)
-      const desired = shortage.has(cn)
-      if (desired === e.problema_suministro) continue
-      if (desired) {
-        const d = shortage.get(cn)!
-        await supabase.from('envase').update({
-          problema_suministro: true,
-          psum_observaciones: d.observ,
-          psum_fecha_inicio: d.fini,
-          psum_fecha_fin: d.ffin,
-        }).eq('id', e.id)
-        suministroMarcados++
-      } else {
-        await supabase.from('envase').update({
-          problema_suministro: false,
-          psum_observaciones: null,
-          psum_fecha_inicio: null,
-          psum_fecha_fin: null,
-        }).eq('id', e.id)
-        suministroResueltos++
+    if (conSuministro) {
+      const shortage = new Map<string, { observ: string | null; fini: string | null; ffin: string | null }>()
+      let pagina = 1
+      let total = Infinity
+      while ((pagina - 1) * PAGE_SIZE < total && pagina <= 10) {
+        await sleep(DELAY_MS)
+        const page = (await fetchJson(`${CIMA_BASE}/psuministro?pagina=${pagina}`)) as PsumLista | null
+        total = page?.totalFilas ?? 0
+        for (const p of page?.resultados ?? []) {
+          if (p?.cn && p.activo !== false) {
+            shortage.set(String(p.cn), { observ: p.observ ?? null, fini: toDate(p.fini), ffin: toDate(p.ffin) })
+          }
+        }
+        pagina++
+      }
+
+      const { data: envs } = await supabase
+        .from('envase')
+        .select('id, codigo_nacional, problema_suministro')
+        .not('codigo_nacional', 'is', null)
+
+      for (const e of envs ?? []) {
+        const cn = String(e.codigo_nacional)
+        const desired = shortage.has(cn)
+        if (desired === e.problema_suministro) continue
+        if (desired) {
+          const d = shortage.get(cn)!
+          await supabase.from('envase').update({
+            problema_suministro: true, psum_observaciones: d.observ, psum_fecha_inicio: d.fini, psum_fecha_fin: d.ffin,
+          }).eq('id', e.id)
+          suministroMarcados++
+        } else {
+          await supabase.from('envase').update({
+            problema_suministro: false, psum_observaciones: null, psum_fecha_inicio: null, psum_fecha_fin: null,
+          }).eq('id', e.id)
+          suministroResueltos++
+        }
       }
     }
 
-    // ── FASE B: bajas por CN (lote que cicla por cima_revisado_en) ──────────
+    // ── FASE B: bajas por CN (lote de la vuelta) ────────────────────────────
     const { data: lote } = await supabase
       .from('envase')
       .select('id, codigo_nacional')
       .eq('comercializado', true)
       .not('codigo_nacional', 'is', null)
+      .or(pendienteFilter)
       .order('cima_revisado_en', { ascending: true, nullsFirst: true })
       .limit(maxBajas)
 
@@ -121,14 +125,26 @@ export async function POST(req: Request) {
       await supabase.from('envase').update(upd).eq('id', e.id)
     }
 
+    // Cuántos envases quedan por revisar en esta vuelta.
+    const { count: pendientes } = await supabase
+      .from('envase')
+      .select('id', { count: 'exact', head: true })
+      .eq('comercializado', true)
+      .not('codigo_nacional', 'is', null)
+      .or(pendienteFilter)
+
     const resumen = {
       ok: true,
+      desde,
       suministro_marcados: suministroMarcados,
       suministro_resueltos: suministroResueltos,
       bajas_nuevas: bajasNuevas,
-      envases_revisados_bajas: lote?.length ?? 0,
+      revisados_lote: lote?.length ?? 0,
+      bajas_pendientes: pendientes ?? 0,
     }
-    await supabase.from('cima_sync_log').insert({ codigo_nacional: 'actualizar', tipo_evento: 'barrido_ok', detalle: resumen })
+    if (conSuministro) {
+      await supabase.from('cima_sync_log').insert({ codigo_nacional: 'actualizar', tipo_evento: 'barrido_ok', detalle: resumen })
+    }
     return NextResponse.json(resumen)
   } catch (err) {
     return NextResponse.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 })
