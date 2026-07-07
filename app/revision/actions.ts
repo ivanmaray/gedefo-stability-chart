@@ -67,6 +67,21 @@ async function incorporarUna(
     presentacionId = data?.id ?? null
   }
   if (!presentacionId) {
+    // Heredar conservación de una presentación hermana del mismo PA, si todas
+    // coinciden (las "IP"/importación paralela no tienen FT propia que parsear).
+    let temp: string | null = null
+    let luz = false
+    const { data: hermanas } = await db
+      .from('presentacion_comercial')
+      .select('temperatura_conservacion, proteccion_luz_almacenamiento')
+      .eq('principio_activo_id', paId)
+      .not('temperatura_conservacion', 'is', null)
+    const temps = [...new Set((hermanas ?? []).map((h) => h.temperatura_conservacion))]
+    if (temps.length === 1) {
+      temp = temps[0]
+      luz = (hermanas ?? []).some((h) => h.proteccion_luz_almacenamiento)
+    }
+
     const { data: nueva, error: presErr } = await db
       .from('presentacion_comercial')
       .insert({
@@ -76,6 +91,8 @@ async function incorporarUna(
         laboratorio_titular: n.laboratorio_titular,
         forma_farmaceutica: formatearTextoCima(n.forma_farmaceutica),
         ficha_tecnica_url: n.ficha_tecnica_url,
+        temperatura_conservacion: temp,
+        proteccion_luz_almacenamiento: luz,
         cima_datos_raw: n.cima_datos_raw,
         cima_last_sync: now,
       })
