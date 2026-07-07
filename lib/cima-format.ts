@@ -24,12 +24,18 @@ const ACENTOS: Record<string, string> = {
   glucosa: 'glucosa', lactosa: 'lactosa', polisorbato: 'polisorbato', macrogol: 'macrogol',
   preparaciones: 'preparaciones', anhidro: 'anhidro', anhidra: 'anhidra',
   dihidrato: 'dihidrato', monohidrato: 'monohidrato', nitrogeno: 'nitrógeno', administracion: 'administración',
+  celula: 'célula', celulas: 'células', dispersion: 'dispersión',
 }
 
 // Acrónimos / vías que se mantienen tal cual.
 const MANTENER = new Set(['EFG', 'IV', 'SC', 'IM', 'UI', 'CAR-T', 'ADN', 'ARN', 'BCG'])
 const PREPOSICIONES = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'y', 'con', 'en', 'para', 'a', 'e', 'o', 'u'])
+// Unidades sueltas → forma canónica.
+const UNIDADES: Record<string, string> = {
+  ml: 'mL', mg: 'mg', g: 'g', mcg: 'mcg', 'µg': 'µg', l: 'L', ui: 'UI', mmol: 'mmol', mol: 'mol', kg: 'kg', x: 'x',
+}
 
+const stripAccents = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '')
 function esCodigo(t: string): boolean {
   return /\d/.test(t) || t.includes('/')
 }
@@ -44,14 +50,21 @@ export function formatearTextoCima(
   if (!raw) return raw ?? null
   const tokens = raw.trim().split(/\s+/)
   const out = tokens.map((tok) => {
-    if (MANTENER.has(tok.toUpperCase())) return tok.toUpperCase()
-    if (esCodigo(tok)) return fixUnidad(tok.toLowerCase())
-    const lower = tok.toLowerCase()
-    if (ACENTOS[lower]) return ACENTOS[lower] // vocabulario farmacéutico → minúscula + acento
+    // Separar puntuación final para no romper los lookups.
+    const m = tok.match(/^(.*?)([.,;:]*)$/)
+    const core = m ? m[1] : tok
+    const punct = m ? m[2] : ''
+    if (!core) return tok
+    if (MANTENER.has(core.toUpperCase())) return core.toUpperCase() + punct
+    const lower = core.toLowerCase()
+    if (UNIDADES[lower]) return UNIDADES[lower] + punct
+    if (esCodigo(core)) return fixUnidad(lower) + punct
+    const key = stripAccents(lower)
+    if (ACENTOS[key]) return ACENTOS[key] + punct // vocabulario farmacéutico → minúscula + acento
     if (opts.nombresPropios && !PREPOSICIONES.has(lower)) {
-      return lower.charAt(0).toUpperCase() + lower.slice(1)
+      return lower.charAt(0).toUpperCase() + lower.slice(1) + punct
     }
-    return lower
+    return lower + punct
   })
   const s = out.join(' ').replace(/\(e([-\s]?\d)/gi, '(E$1') // (e 524) → (E 524)
   return s.charAt(0).toUpperCase() + s.slice(1)
