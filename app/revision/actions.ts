@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import type { Database, Json } from '@/lib/types'
+import { formatearTextoCima } from '@/lib/cima-format'
 
 type Novedad = Database['public']['Tables']['cima_novedad']['Row']
 
@@ -71,9 +72,9 @@ async function incorporarUna(
       .insert({
         principio_activo_id: paId,
         nregistro_cima: n.nregistro_cima,
-        nombre_comercial: n.nombre_comercial ?? 'Sin nombre',
+        nombre_comercial: formatearTextoCima(n.nombre_comercial, { nombresPropios: true }) ?? 'Sin nombre',
         laboratorio_titular: n.laboratorio_titular,
-        forma_farmaceutica: n.forma_farmaceutica,
+        forma_farmaceutica: formatearTextoCima(n.forma_farmaceutica),
         ficha_tecnica_url: n.ficha_tecnica_url,
         cima_datos_raw: n.cima_datos_raw,
         cima_last_sync: now,
