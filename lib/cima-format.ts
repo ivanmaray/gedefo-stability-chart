@@ -24,7 +24,7 @@ const ACENTOS: Record<string, string> = {
   glucosa: 'glucosa', lactosa: 'lactosa', polisorbato: 'polisorbato', macrogol: 'macrogol',
   preparaciones: 'preparaciones', anhidro: 'anhidro', anhidra: 'anhidra',
   dihidrato: 'dihidrato', monohidrato: 'monohidrato', nitrogeno: 'nitrógeno', administracion: 'administración',
-  celula: 'célula', celulas: 'células', dispersion: 'dispersión',
+  celula: 'célula', celulas: 'células',
 }
 
 // Acrónimos / vías que se mantienen tal cual.
