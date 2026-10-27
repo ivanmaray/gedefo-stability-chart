@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" font-family="'Nunito', 'Quicksand', 'Segoe UI', system-ui, sans-serif">
+  <!-- OPCIÓN C: pictograma de chart dentro del círculo -->
+
+  <!-- Círculo turquesa -->
+  <circle cx="110" cy="110" r="95" fill="#1AA5B0"/>
+
+  <!-- Línea base del gráfico -->
+  <line x1="45" y1="170" x2="175" y2="170" stroke="#ffffff" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Barras ascendentes en los 4 colores de la paleta GEDEFO -->
+  <rect x="55"  y="130" width="22" height="40"  rx="4" fill="#F5D042"/>
+  <rect x="87"  y="100" width="22" height="70"  rx="4" fill="#C5D634"/>
+  <rect x="119" y="80"  width="22" height="90"  rx="4" fill="#D6418F"/>
+  <rect x="151" y="60"  width="22" height="110" rx="4" fill="#ffffff"/>
+
+  <!-- Línea/curva encima (doble lectura: tendencia o curva de estabilidad) -->
+  <polyline points="66,135 98,108 130,88 162,68"
+            fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+  <circle cx="66"  cy="135" r="4" fill="#ffffff"/>
+  <circle cx="98"  cy="108" r="4" fill="#ffffff"/>
+  <circle cx="130" cy="88"  r="4" fill="#ffffff"/>
+  <circle cx="162" cy="68"  r="4" fill="#ffffff"/>
+
+  <!-- Wordmark -->
+  <text x="240" y="118" font-size="68" font-weight="700" fill="#1AA5B0" letter-spacing="-1">gedefo</text>
+  <text x="475" y="118" font-size="68" font-weight="700" fill="#D6418F" letter-spacing="-1">-chart</text>
+
+  <!-- Subtítulo -->
+  <text x="242" y="155" font-size="18" font-weight="600" fill="#6D6E71" letter-spacing="0.5">Grupo de Farmacia Oncológica de la sefh</text>
+</svg>

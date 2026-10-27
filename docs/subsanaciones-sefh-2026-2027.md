@@ -25,6 +25,17 @@
 
 ---
 
+## Condiciones específicas de la resolución (se aceptan)
+
+La resolución supedita la ejecución del proyecto a cuatro condiciones, que el equipo **acepta** y sobre las que ya se está trabajando:
+
+1. **Alojamiento en servidores de la SEFH.** La herramienta se alojará en la infraestructura de la SEFH mediante un **subdominio dentro de la web del Grupo de Trabajo GEDEFO**. Esto refuerza el plan de sostenibilidad (Punto 4) y condiciona el desglose de infraestructura (Punto 3).
+2. **Reunión previa con informática de la SEFH.** Antes de iniciar el desarrollo en su entorno, se mantendrá una reunión con el equipo técnico de la SEFH para **verificar la compatibilidad** de la plataforma (base de datos PostgreSQL, backend serverless, frontend web) con los sistemas y bases de datos de la Sociedad. El desglose del Punto 3 se ajustará al resultado de esta reunión.
+3. **Revisión jurídica.** Conforme avance el proyecto, el Departamento Jurídico de la SEFH incorporará las cláusulas, avisos y condiciones necesarias en materia de **responsabilidad, protección de datos y propiedad intelectual**.
+4. **Convenio de cesión SEFH–desarrollador.** Se formalizará un convenio con el desarrollador (**Iván Maray**) para regular la **cesión de la herramienta a la SEFH** y su uso gratuito por todos los socios; la resolución contempla asimismo estudiar una **contraprestación al desarrollador** por dicha cesión. Esta contraprestación es **independiente** del presupuesto de este proyecto (0 € en gastos de personal), que no financia horas de desarrollo.
+
+---
+
 ## Punto 1 — Eliminación de la partida de *medical writer*
 
 Se **acepta la eliminación** de la partida correspondiente al *medical writer* y la consiguiente adecuación del presupuesto. La redacción científica de los manuscritos será asumida directamente por el equipo investigador, conforme a la política de la convocatoria.
@@ -46,6 +57,8 @@ El desarrollo de la infraestructura tecnológica lo realiza **el propio equipo i
 - El proyecto se construye sobre **tecnologías estándar y código abierto** (base de datos PostgreSQL gestionada, backend de funciones serverless, frontend web), lo que evita la dependencia de un único proveedor (*vendor lock-in*) y garantiza la portabilidad.
 
 Este modelo asegura **independencia tecnológica, control del equipo sobre el producto y sostenibilidad** (ver Punto 4), y es coherente con el requisito de la convocatoria de que los desarrollos informáticos repercutan en la SEFH sin fines lucrativos.
+
+**Encaje con las condiciones de la resolución.** El desarrollo *in-house* es plenamente compatible con lo previsto en la resolución: (i) la herramienta se **cede a la SEFH** mediante convenio con el desarrollador (Iván Maray) para uso gratuito de todos los socios; (ii) se aloja en la **infraestructura de la SEFH** (subdominio GEDEFO), previa reunión con su informática; y (iii) la eventual **contraprestación al desarrollador** que estudia la SEFH es ajena a este presupuesto —que mantiene **0 € en gastos de personal**— y retribuiría la cesión de la herramienta, no horas imputadas al proyecto.
 
 ---
 
@@ -73,6 +86,8 @@ El importe corresponde **íntegramente a costes operativos de la plataforma en l
 
 > El desglose está dimensionado para una duración de hasta **24 meses** (proyecto + seguimiento). Si la duración financiada es de 12 meses, las partidas de alojamiento recurrente se reducen proporcionalmente y la diferencia se reasigna a contingencia/seguimiento.
 
+> ⚠️ **Sujeto a la reunión con informática de la SEFH.** Este desglose está dimensionado para un despliegue en **nube gestionada** (PostgreSQL + hosting web). Dado que la resolución exige el **alojamiento en servidores de la SEFH** (subdominio GEDEFO), en la reunión técnica previa se verificará qué parte de la infraestructura puede asumir directamente la SEFH. **Si la SEFH aloja la base de datos y/o el frontend**, las partidas de alojamiento recurrente (base de datos ~600 € y frontend ~480 €) **se reducen o se reasignan** a puesta en producción, copias de seguridad, monitorización, accesibilidad y contingencia, manteniendo el tope de **2.000 €**. El importe final se ajustará al modelo de despliegue que se acuerde con su informática.
+
 ---
 
 ## Punto 4 — Plan de sostenibilidad
@@ -81,7 +96,7 @@ La sostenibilidad está garantizada por el **bajo coste recurrente** y por un **
 
 **1. Coste de mantenimiento bajo y asumible.** Una vez en producción, el coste recurrente de infraestructura es de aproximadamente **550–600 €/año** (alojamiento gestionado + dominio). Al ser el desarrollo *in-house*, no existen costes de licencia ni de mantenimiento por terceros.
 
-**2. Responsable del mantenimiento: el Grupo de Trabajo GEDEFO.** La actualización de contenidos y la supervisión técnica recaen en el grupo, con un **coordinador-validador designado**. Se propone que la **SEFH aloje el dominio e infraestructura como activo del grupo de trabajo**, de forma que la plataforma no dependa de una persona o centro concreto.
+**2. Responsable del mantenimiento: el Grupo de Trabajo GEDEFO.** La actualización de contenidos y la supervisión técnica recaen en el grupo, con un **coordinador-validador designado**. En coherencia con la resolución, la plataforma se **aloja en la infraestructura de la SEFH** (subdominio GEDEFO) como **activo del grupo de trabajo**, y su cesión se regula mediante convenio (ver Condiciones específicas), de forma que la plataforma no depende de una persona o centro concreto.
 
 **3. Mantenimiento de contenidos mediante gobernanza estructurada.** El modelo de datos incorpora un **flujo de validación por pares** (estados *borrador → en revisión → validado → obsoleto*, con autor, dos revisores, coordinador-validador y fecha de próxima revisión). Cada ficha tiene trazabilidad y caducidad de revisión, lo que convierte la actualización en un **proceso reglado y distribuido**, no dependiente de financiación recurrente.
 
@@ -139,4 +154,6 @@ Conforme a lo indicado en la resolución, el proyecto contará con el **servicio
 - [ ] Desglose de infraestructura validado por el equipo.
 - [ ] Postura de grupo confirmada en Puntos 2 (in-house) y 5 (Delphi puntual) — consultar con GEDEFO/Bea.
 - [ ] Detalle del soporte metodológico SEFH (tiempo/funciones/cronograma, 0 €).
+- [ ] **Aceptación expresa** de las 4 condiciones específicas (alojamiento SEFH, reunión con informática, revisión jurídica, convenio de cesión).
+- [ ] **Decisión de grupo** sobre la contraprestación al desarrollador (Iván): cómo se plantea en el convenio, al margen del presupuesto del proyecto.
 - [ ] Envío a raquel.anton@sefh.es.
