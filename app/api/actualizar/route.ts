@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/lib/types'
+import { query, queryOne } from '@/lib/db'
 
 // ACTUALIZAR EXISTENTES: sincroniza la info de las presentaciones que YA tenemos
 // con CIMA (distinto del barrido, que descubre presentaciones nuevas).
@@ -35,18 +34,11 @@ interface PresLista { totalFilas?: number; resultados?: { comerc?: boolean; esta
 
 export async function POST(req: Request) {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!url || !key) return NextResponse.json({ ok: false, error: 'Falta SUPABASE_SERVICE_ROLE_KEY en el entorno.' }, { status: 500 })
-    const supabase = createClient<Database>(url, key)
-
     const body = await req.json().catch(() => ({}))
     const maxBajas: number = Number(body?.max_bajas ?? 80)
     // Inicio de la vuelta: solo se revisan envases no tocados desde este instante.
     const desde: string = body?.desde ?? new Date().toISOString()
     const conSuministro: boolean = body?.suministro !== false
-    // Filtro de "pendientes en esta vuelta": nunca revisados o revisados antes de `desde`.
-    const pendienteFilter = `cima_revisado_en.is.null,cima_revisado_en.lt.${desde}`
 
     // ── FASE A: problema de suministro (solo en la 1ª llamada de la vuelta) ──
     let suministroMarcados = 0
@@ -67,43 +59,45 @@ export async function POST(req: Request) {
         pagina++
       }
 
-      const { data: envs } = await supabase
-        .from('envase')
-        .select('id, codigo_nacional, problema_suministro')
-        .not('codigo_nacional', 'is', null)
+      const envs = await query<{ id: string; codigo_nacional: string | null; problema_suministro: boolean | null }>(
+        'select id, codigo_nacional, problema_suministro from envase where codigo_nacional is not null',
+      )
 
-      for (const e of envs ?? []) {
+      for (const e of envs) {
         const cn = String(e.codigo_nacional)
         const desired = shortage.has(cn)
         if (desired === e.problema_suministro) continue
         if (desired) {
           const d = shortage.get(cn)!
-          await supabase.from('envase').update({
-            problema_suministro: true, psum_observaciones: d.observ, psum_fecha_inicio: d.fini, psum_fecha_fin: d.ffin,
-          }).eq('id', e.id)
+          await query(
+            'update envase set problema_suministro = true, psum_observaciones = $1, psum_fecha_inicio = $2, psum_fecha_fin = $3 where id = $4',
+            [d.observ, d.fini, d.ffin, e.id],
+          )
           suministroMarcados++
         } else {
-          await supabase.from('envase').update({
-            problema_suministro: false, psum_observaciones: null, psum_fecha_inicio: null, psum_fecha_fin: null,
-          }).eq('id', e.id)
+          await query(
+            'update envase set problema_suministro = false, psum_observaciones = null, psum_fecha_inicio = null, psum_fecha_fin = null where id = $1',
+            [e.id],
+          )
           suministroResueltos++
         }
       }
     }
 
     // ── FASE B: bajas por CN (lote de la vuelta) ────────────────────────────
-    const { data: lote } = await supabase
-      .from('envase')
-      .select('id, codigo_nacional')
-      .eq('comercializado', true)
-      .not('codigo_nacional', 'is', null)
-      .or(pendienteFilter)
-      .order('cima_revisado_en', { ascending: true, nullsFirst: true })
-      .limit(maxBajas)
+    // Pendientes en esta vuelta: nunca revisados o revisados antes de `desde`.
+    const lote = await query<{ id: string; codigo_nacional: string | null }>(
+      `select id, codigo_nacional from envase
+         where comercializado = true and codigo_nacional is not null
+           and (cima_revisado_en is null or cima_revisado_en < $1)
+         order by cima_revisado_en asc nulls first
+         limit $2`,
+      [desde, maxBajas],
+    )
 
     const now = new Date().toISOString()
     let bajasNuevas = 0
-    for (const e of lote ?? []) {
+    for (const e of lote) {
       const cn = String(e.codigo_nacional)
       await sleep(DELAY_MS)
       const pres = (await fetchJson(`${CIMA_BASE}/presentaciones?cn=${encodeURIComponent(cn)}`)) as PresLista | null
@@ -114,24 +108,29 @@ export async function POST(req: Request) {
         if (p?.estado?.rev) motivo = 'revocada'
         else if (p?.comerc === false) motivo = 'no_comercializada'
       }
-      const upd: Database['public']['Tables']['envase']['Update'] = { cima_revisado_en: now }
       if (motivo) {
-        upd.baja_pendiente = true
-        upd.baja_motivo = motivo
-        upd.baja_detectada_en = now
+        await query(
+          'update envase set cima_revisado_en = $1, baja_pendiente = true, baja_motivo = $2, baja_detectada_en = $1 where id = $3',
+          [now, motivo, e.id],
+        )
         bajasNuevas++
-        await supabase.from('cima_sync_log').insert({ codigo_nacional: cn, tipo_evento: 'baja_detectada', detalle: { motivo } })
+        await query(
+          'insert into cima_sync_log (codigo_nacional, tipo_evento, detalle) values ($1, $2, $3::jsonb)',
+          [cn, 'baja_detectada', JSON.stringify({ motivo })],
+        )
+      } else {
+        await query('update envase set cima_revisado_en = $1 where id = $2', [now, e.id])
       }
-      await supabase.from('envase').update(upd).eq('id', e.id)
     }
 
     // Cuántos envases quedan por revisar en esta vuelta.
-    const { count: pendientes } = await supabase
-      .from('envase')
-      .select('id', { count: 'exact', head: true })
-      .eq('comercializado', true)
-      .not('codigo_nacional', 'is', null)
-      .or(pendienteFilter)
+    const cnt = await queryOne<{ count: number }>(
+      `select count(*)::int as count from envase
+         where comercializado = true and codigo_nacional is not null
+           and (cima_revisado_en is null or cima_revisado_en < $1)`,
+      [desde],
+    )
+    const pendientes = cnt?.count ?? 0
 
     const resumen = {
       ok: true,
@@ -139,11 +138,14 @@ export async function POST(req: Request) {
       suministro_marcados: suministroMarcados,
       suministro_resueltos: suministroResueltos,
       bajas_nuevas: bajasNuevas,
-      revisados_lote: lote?.length ?? 0,
-      bajas_pendientes: pendientes ?? 0,
+      revisados_lote: lote.length,
+      bajas_pendientes: pendientes,
     }
     if (conSuministro) {
-      await supabase.from('cima_sync_log').insert({ codigo_nacional: 'actualizar', tipo_evento: 'barrido_ok', detalle: resumen })
+      await query(
+        'insert into cima_sync_log (codigo_nacional, tipo_evento, detalle) values ($1, $2, $3::jsonb)',
+        ['actualizar', 'barrido_ok', JSON.stringify(resumen)],
+      )
     }
     return NextResponse.json(resumen)
   } catch (err) {

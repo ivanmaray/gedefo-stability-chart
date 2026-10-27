@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/lib/types'
+import { query } from '@/lib/db'
 
 // El barrido es lento (rate-limit con CIMA). Se ejecuta por LOTES acotados por
 // `max_detalle` para caber en el límite de tiempo de la función; como es
@@ -69,38 +68,27 @@ function ftUrlOf(m: CimaMedicamento): string | null {
 
 export async function POST(req: Request) {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!url || !key) {
-      return NextResponse.json({ ok: false, error: 'Falta SUPABASE_SERVICE_ROLE_KEY en el entorno.' }, { status: 500 })
-    }
-    const supabase = createClient<Database>(url, key)
-
     const body = await req.json().catch(() => ({}))
     const atc: string = (body?.atc ?? 'L01').toString().toUpperCase()
     const maxDetalle: number = Number(body?.max_detalle ?? 25)
 
     // 1. Estado actual (modelo jerárquico: presentacion=nregistro, envase=CN)
     const [pres, env, pas, nov] = await Promise.all([
-      supabase.from('presentacion_comercial').select('nregistro_cima'),
-      supabase.from('envase').select('codigo_nacional'),
-      supabase.from('principio_activo').select('id, atc_code'),
-      supabase.from('cima_novedad').select('codigo_nacional, nregistro_cima'),
+      query<{ nregistro_cima: string | null }>('select nregistro_cima from presentacion_comercial'),
+      query<{ codigo_nacional: string | null }>('select codigo_nacional from envase'),
+      query<{ id: string; atc_code: string | null }>('select id, atc_code from principio_activo'),
+      query<{ codigo_nacional: string | null; nregistro_cima: string | null }>('select codigo_nacional, nregistro_cima from cima_novedad'),
     ])
-    if (pres.error) throw pres.error
-    if (env.error) throw env.error
-    if (pas.error) throw pas.error
-    if (nov.error) throw nov.error
 
     const knownCn = new Set<string>()
-    for (const r of env.data ?? []) if (r.codigo_nacional) knownCn.add(String(r.codigo_nacional))
+    for (const r of env) if (r.codigo_nacional) knownCn.add(String(r.codigo_nacional))
     const knownNreg = new Set<string>()
-    for (const r of pres.data ?? []) if (r.nregistro_cima) knownNreg.add(String(r.nregistro_cima))
+    for (const r of pres) if (r.nregistro_cima) knownNreg.add(String(r.nregistro_cima))
     const paByAtc = new Map<string, string>()
-    for (const r of pas.data ?? []) if (r.atc_code) paByAtc.set(String(r.atc_code).toUpperCase(), r.id)
+    for (const r of pas) if (r.atc_code) paByAtc.set(String(r.atc_code).toUpperCase(), r.id)
     const queuedCn = new Set<string>()
     const processedNreg = new Set<string>()
-    for (const r of nov.data ?? []) {
+    for (const r of nov) {
       if (r.codigo_nacional) queuedCn.add(String(r.codigo_nacional))
       if (r.nregistro_cima) processedNreg.add(String(r.nregistro_cima))
     }
@@ -151,31 +139,30 @@ export async function POST(req: Request) {
         if (!cn) continue
         if (knownCn.has(cn) || queuedCn.has(cn) || insertadosRun.has(cn)) continue
 
-        const { error } = await supabase.from('cima_novedad').insert({
-          tipo,
-          codigo_nacional: cn,
-          nregistro_cima: String(nregistro),
-          dci,
-          atc_code: atcCode,
-          nombre_comercial: p?.nombre ?? med.nombre ?? null,
-          laboratorio_titular: med.labtitular ?? null,
-          forma_farmaceutica: med.formaFarmaceutica?.nombre ?? null,
-          comercializado: med.comerc ?? null,
-          ficha_tecnica_url: ftUrl,
-          principio_activo_id: paId,
-          barrido_atc: atc,
-          cima_datos_raw: med as unknown as Database['public']['Tables']['cima_novedad']['Insert']['cima_datos_raw'],
-        })
-        if (error) continue
+        try {
+          await query(
+            `insert into cima_novedad
+               (tipo, codigo_nacional, nregistro_cima, dci, atc_code, nombre_comercial,
+                laboratorio_titular, forma_farmaceutica, comercializado, ficha_tecnica_url,
+                principio_activo_id, barrido_atc, cima_datos_raw)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb)`,
+            [
+              tipo, cn, String(nregistro), dci, atcCode, p?.nombre ?? med.nombre ?? null,
+              med.labtitular ?? null, med.formaFarmaceutica?.nombre ?? null, med.comerc ?? null, ftUrl,
+              paId, atc, JSON.stringify(med),
+            ],
+          )
+        } catch {
+          continue // CN duplicado (unique) u otro error → saltar
+        }
 
         insertadosRun.add(cn)
         if (tipo === 'nueva_presentacion') nuevasPresentaciones++
         else nuevosPrincipios++
-        await supabase.from('cima_sync_log').insert({
-          codigo_nacional: cn,
-          tipo_evento: 'novedad_detectada',
-          detalle: { tipo, nregistro, dci, atc: atcCode },
-        })
+        await query(
+          `insert into cima_sync_log (codigo_nacional, tipo_evento, detalle) values ($1, $2, $3::jsonb)`,
+          [cn, 'novedad_detectada', JSON.stringify({ tipo, nregistro, dci, atc: atcCode })],
+        )
       }
     }
 
@@ -189,11 +176,10 @@ export async function POST(req: Request) {
       nuevos_principios_activos: nuevosPrincipios,
       quedan_por_procesar: Math.max(0, nuevos.length - Math.min(nuevos.length, maxDetalle)),
     }
-    await supabase.from('cima_sync_log').insert({
-      codigo_nacional: `atc:${atc}`,
-      tipo_evento: 'barrido_ok',
-      detalle: resumen,
-    })
+    await query(
+      `insert into cima_sync_log (codigo_nacional, tipo_evento, detalle) values ($1, $2, $3::jsonb)`,
+      [`atc:${atc}`, 'barrido_ok', JSON.stringify(resumen)],
+    )
 
     return NextResponse.json(resumen)
   } catch (err) {

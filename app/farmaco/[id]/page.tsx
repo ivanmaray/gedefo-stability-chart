@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { getDrugDetail } from '@/lib/queries'
 import { notFound } from 'next/navigation'
 import PresentationCard from '@/components/PresentationCard'
 import StabilityTable from '@/components/StabilityTable'
@@ -17,27 +17,18 @@ const nioshBadge: Record<string, string> = {
 export default async function FarmacoPage({ params }: PageProps) {
   const { id } = params
 
-  const [
-    { data: pa, error: paError },
-    { data: presentaciones },
-    { data: estabilidades },
-    { data: condiciones },
-    { data: administraciones },
-    { data: compatibilidades },
-    { data: compatDiluentes },
-    { data: matrizRiesgo },
-  ] = await Promise.all([
-    supabase.from('principio_activo').select('*').eq('id', id).single(),
-    supabase.from('presentacion_comercial').select('*, envase(*)').eq('principio_activo_id', id).order('nombre_comercial'),
-    supabase.from('estabilidad').select('*').eq('principio_activo_id', id).order('temperatura_celsius'),
-    supabase.from('condicion_preparacion').select('*').eq('principio_activo_id', id),
-    supabase.from('administracion').select('*').eq('principio_activo_id', id),
-    supabase.from('compatibilidad_material').select('*').eq('principio_activo_id', id).order('resultado'),
-    supabase.from('compatibilidad_diluente').select('*').eq('principio_activo_id', id).order('resultado'),
-    supabase.from('matriz_riesgo').select('*').eq('principio_activo_id', id).maybeSingle(),
-  ])
+  const {
+    pa,
+    presentaciones,
+    estabilidades,
+    condiciones,
+    administraciones,
+    compatibilidades,
+    compatDiluentes,
+    matrizRiesgo,
+  } = await getDrugDetail(id)
 
-  if (paError || !pa) notFound()
+  if (!pa) notFound()
 
   const condReconst = condiciones?.filter((c) => c.tipo === 'reconstitucion') ?? []
   const condDilucion = condiciones?.filter((c) => c.tipo === 'dilucion') ?? []
@@ -73,7 +64,7 @@ export default async function FarmacoPage({ params }: PageProps) {
           {presentaciones && presentaciones.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {presentaciones.map((p) => (
-                <PresentationCard key={p.id} presentacion={p} envases={(p as any).envase ?? []} />
+                <PresentationCard key={p.id} presentacion={p as any} envases={(p as any).envase ?? []} />
               ))}
             </div>
           ) : (
@@ -196,7 +187,7 @@ export default async function FarmacoPage({ params }: PageProps) {
 
         {/* Estabilidad de la solución diluida */}
         <Section title="Estabilidad">
-          <StabilityTable estabilidades={estabilidades ?? []} />
+          <StabilityTable estabilidades={estabilidades as any} />
         </Section>
       </Block>
 

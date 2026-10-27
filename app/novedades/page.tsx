@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { getNovedadesPendientes } from '@/lib/queries'
 import type { Database } from '@/lib/types'
 import BarridoButton from './BarridoButton'
 import ActualizarButton from './ActualizarButton'
@@ -72,13 +72,13 @@ function TablaNovedades({ filas }: { filas: Novedad[] }) {
 }
 
 export default async function NovedadesPage() {
-  const { data, error } = await supabase
-    .from('cima_novedad')
-    .select('*')
-    .in('estado', ['pendiente', 'en_revision'])
-    .order('detectada_en', { ascending: false })
-
-  const filas: Novedad[] = data ?? []
+  let filas: Novedad[] = []
+  let error: { message: string } | null = null
+  try {
+    filas = (await getNovedadesPendientes(false)) as Novedad[]
+  } catch (e: any) {
+    error = { message: e?.message ?? 'Error al cargar novedades' }
+  }
   const nuevosPa = filas.filter((n) => n.tipo === 'nuevo_principio_activo')
   const nuevasPres = filas.filter((n) => n.tipo === 'nueva_presentacion')
 

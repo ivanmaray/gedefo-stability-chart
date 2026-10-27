@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { getHomeData } from '@/lib/queries'
 import Tooltip from '@/components/Tooltip'
 import NioshBadge from '@/components/NioshBadge'
 
@@ -99,24 +99,13 @@ function RefFooter({ source }: { source: any }) {
 }
 
 export default async function HomePage() {
-  const { data: drugs, error } = await supabase
-    .from('principio_activo')
-    .select(`
-      *,
-      presentacion_comercial ( *, envase(*) ),
-      condicion_preparacion ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
-      administracion ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores), referencia_extravasacion:referencia_extravasacion_id(titulo, tipo_fuente, url, anio, autores) ),
-      compatibilidad_diluente ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
-      compatibilidad_material ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
-      estabilidad ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) ),
-      matriz_riesgo ( *, referencia:referencia_id(titulo, tipo_fuente, url, anio, autores) )
-    `)
-    .order('dci')
-
-  if (error) {
+  let drugs: any[]
+  try {
+    drugs = await getHomeData()
+  } catch (e: any) {
     return (
       <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-4">
-        Error: {error.message}
+        Error: {e?.message ?? 'Error al cargar datos'}
       </div>
     )
   }
@@ -200,6 +189,16 @@ export default async function HomePage() {
     })
   })
 
+  // Fecha más reciente de sincronización con CIMA
+  const allSyncDates = (drugs ?? []).flatMap((d) =>
+    ((d as any).presentacion_comercial ?? [])
+      .map((p: any) => p.cima_last_sync)
+      .filter(Boolean)
+  )
+  const lastSync = allSyncDates.length > 0
+    ? new Date(allSyncDates.sort().reverse()[0]).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
+
   return (
     <div>
       <div className="mb-5">
@@ -208,6 +207,12 @@ export default async function HomePage() {
           {drugs?.length ?? 0} principios activos
           <span className="mx-1.5 text-gray-300">·</span>
           {(drugs ?? []).reduce((acc, d) => acc + ((d as any).presentacion_comercial?.length ?? 0), 0)} presentaciones comercializadas
+          {lastSync && (
+            <>
+              <span className="mx-1.5 text-gray-300">·</span>
+              CIMA {lastSync}
+            </>
+          )}
         </p>
       </div>
 
